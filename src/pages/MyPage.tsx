@@ -1,4 +1,5 @@
 import { Header } from '../components/Header'
+import { useAuth } from '../hooks/useAuth'
 import {
   ChevronRight,
   User,
@@ -7,24 +8,18 @@ import {
   HelpCircle,
   LogOut,
   ShoppingBag,
+  ArrowRightLeft,
 } from 'lucide-react'
-
-const DUMMY_USER = {
-  name: '山田 太郎',
-  email: 'yamada@example.com',
-  className: 'Aクラス',
-  role: 'member' as const,
-  childName: '山田 花子',
-}
 
 interface MenuItemProps {
   icon: React.ReactNode
   label: string
   onClick?: () => void
   danger?: boolean
+  right?: React.ReactNode
 }
 
-function MenuItem({ icon, label, onClick, danger }: MenuItemProps) {
+function MenuItem({ icon, label, onClick, danger, right }: MenuItemProps) {
   return (
     <button
       onClick={onClick}
@@ -34,12 +29,16 @@ function MenuItem({ icon, label, onClick, danger }: MenuItemProps) {
     >
       {icon}
       <span className="flex-1 text-left text-sm font-medium">{label}</span>
-      {!danger && <ChevronRight size={16} className="text-text-secondary" />}
+      {right ?? (!danger && <ChevronRight size={16} className="text-text-secondary" />)}
     </button>
   )
 }
 
 export function MyPage() {
+  const { user, isAdmin, switchRole } = useAuth()
+
+  if (!user) return null
+
   return (
     <div className="flex h-full flex-col">
       <Header title="マイページ" />
@@ -48,17 +47,23 @@ export function MyPage() {
       <div className="border-b border-border p-4">
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-xl font-bold text-white">
-            {DUMMY_USER.name.charAt(0)}
+            {user.name.charAt(0)}
           </div>
           <div>
-            <h2 className="text-lg font-bold text-text">{DUMMY_USER.name}</h2>
-            <p className="text-sm text-text-secondary">{DUMMY_USER.email}</p>
+            <h2 className="text-lg font-bold text-text">{user.name}</h2>
+            <p className="text-sm text-text-secondary">{user.email}</p>
             <div className="mt-1 flex gap-2">
               <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary">
-                {DUMMY_USER.className}
+                Aクラス
               </span>
-              <span className="rounded-full bg-bg px-2.5 py-0.5 text-xs font-medium text-text-secondary">
-                お子様: {DUMMY_USER.childName}
+              <span
+                className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                  isAdmin
+                    ? 'bg-accent/10 text-accent'
+                    : 'bg-bg text-text-secondary'
+                }`}
+              >
+                {isAdmin ? '管理者' : '会員'}
               </span>
             </div>
           </div>
@@ -67,6 +72,20 @@ export function MyPage() {
 
       {/* Menu sections */}
       <div className="space-y-2 pt-2">
+        {/* DEV: ロール切り替え */}
+        <div className="border-b border-border">
+          <MenuItem
+            icon={<ArrowRightLeft size={20} className="text-accent" />}
+            label={isAdmin ? '会員モードに切替' : '管理者モードに切替'}
+            onClick={() => switchRole(isAdmin ? 'member' : 'admin')}
+            right={
+              <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-bold text-accent">
+                DEV
+              </span>
+            }
+          />
+        </div>
+
         <div className="border-b border-border">
           <MenuItem
             icon={<User size={20} className="text-text-secondary" />}

@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Header } from '../components/Header'
-import { CheckCheck, Paperclip, AlertTriangle } from 'lucide-react'
+import { ComposeModal } from '../components/ComposeModal'
+import { useAuth } from '../hooks/useAuth'
+import { CheckCheck, Paperclip, AlertTriangle, Plus } from 'lucide-react'
 import type { Message } from '../types'
 
-const DUMMY_MESSAGES: Message[] = [
+const INITIAL_MESSAGES: Message[] = [
   {
     id: '1',
     text: '【重要】来週の練習スケジュール変更のお知らせ\n\n来週の水曜日（2/11）は祝日のため、練習はお休みとなります。振替練習は2/14（土）10:00〜12:00に実施します。',
@@ -127,14 +129,57 @@ function MessageBubble({ message }: { message: Message }) {
 }
 
 export function TalkPage() {
+  const { user, isAdmin } = useAuth()
+  const [messages, setMessages] = useState(INITIAL_MESSAGES)
+  const [showCompose, setShowCompose] = useState(false)
+
+  const handleSend = (data: {
+    text: string
+    targetClassId: string
+    isImportant: boolean
+    image: File | null
+  }) => {
+    const newMessage: Message = {
+      id: String(Date.now()),
+      text: data.text,
+      targetClassId: data.targetClassId,
+      isImportant: data.isImportant,
+      senderName: user?.name ?? '',
+      senderRole: 'admin',
+      createdAt: new Date(),
+      attachmentUrl: data.image ? URL.createObjectURL(data.image) : undefined,
+      attachmentType: data.image ? 'image' : undefined,
+    }
+    setMessages([newMessage, ...messages])
+    setShowCompose(false)
+  }
+
   return (
     <div className="flex h-full flex-col">
       <Header title="トーク" />
       <div className="flex-1 divide-y divide-border/50">
-        {DUMMY_MESSAGES.map((msg) => (
+        {messages.map((msg) => (
           <MessageBubble key={msg.id} message={msg} />
         ))}
       </div>
+
+      {/* FAB - 管理者のみ表示 */}
+      {isAdmin && (
+        <button
+          onClick={() => setShowCompose(true)}
+          className="fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary shadow-lg shadow-primary/30 transition-transform active:scale-90"
+        >
+          <Plus size={28} className="text-white" />
+        </button>
+      )}
+
+      {/* メッセージ作成モーダル */}
+      {showCompose && (
+        <ComposeModal
+          onClose={() => setShowCompose(false)}
+          onSend={handleSend}
+        />
+      )}
     </div>
   )
 }
