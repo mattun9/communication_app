@@ -16,6 +16,7 @@ export interface Message {
   attachmentType?: 'image' | 'pdf'
   targetClassId: string | 'all'
   isImportant: boolean
+  senderUid: string
   senderName: string
   senderRole: 'admin' | 'member'
   createdAt: Date
