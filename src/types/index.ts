@@ -9,31 +9,55 @@ export interface User {
   createdAt: Date
 }
 
+// 個別チャットメッセージ
 export interface Message {
   id: string
   text: string
+  type: 'text' | 'system'
   attachmentUrl?: string
   attachmentType?: 'image' | 'pdf'
-  targetClassId: string | 'all'
-  isImportant: boolean
   senderUid: string
   senderName: string
   senderRole: 'admin' | 'member'
+  // 個別チャットの相手 (1対1)
+  recipientUid?: string
   createdAt: Date
 }
 
-export interface ReadReceipt {
-  messageId: string
-  userId: string
-  readAt: Date
+// セグメント配信（一斉連絡）
+export interface Broadcast {
+  id: string
+  title: string
+  body: string
+  imageUrl?: string
+  targetType: 'all' | 'class' | 'individual'
+  targetClassIds: string[]
+  targetUserIds?: string[]
+  isImportant: boolean
+  status: 'draft' | 'scheduled' | 'sent'
+  scheduledAt?: Date
+  sentAt?: Date
+  createdBy: string
+  createdAt: Date
 }
 
-export interface Attendance {
+// 配信の開封状況
+export interface ReadStatus {
+  broadcastId: string
+  userId: string
+  userName: string
+  openedAt: Date
+}
+
+// お休み連絡
+export interface Absence {
   id: string
   userId: string
+  userName: string
+  classId: string
   date: Date
   reason: string
-  status: 'pending' | 'approved' | 'rejected'
+  note?: string
   createdAt: Date
 }
 
