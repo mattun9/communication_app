@@ -12,8 +12,8 @@ export function MemberLayout() {
   const navigate = useNavigate()
 
   return (
-    <div className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col bg-bg-card shadow-sm">
-      <main className="flex-1 overflow-hidden">
+    <div className="mx-auto flex h-[100dvh] w-full max-w-lg flex-col bg-bg-card shadow-sm">
+      <main className="flex min-h-0 flex-1 flex-col overflow-hidden pb-14">
         <Outlet />
       </main>
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-bg-card safe-area-bottom">

@@ -55,7 +55,7 @@ export function MemberCalendarPage() {
   const selectedEvents = selectedDate ? getEventsForDate(selectedDate) : []
 
   return (
-    <div className="flex h-[100dvh] flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <header className="sticky top-0 z-40 flex h-12 items-center border-b border-border bg-bg-card px-4">
         <h1 className="text-base font-bold text-text">カレンダー</h1>
       </header>

@@ -186,7 +186,7 @@ export function MemberTalkPage() {
   }
 
   return (
-    <div className="flex h-[100dvh] flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       {/* Header */}
       <header className="sticky top-0 z-40 flex h-12 items-center justify-between border-b border-border bg-bg-card px-4">
         <h1 className="text-base font-bold text-text">トーク</h1>
@@ -209,7 +209,7 @@ export function MemberTalkPage() {
       )}
 
       {/* Timeline */}
-      <div className="flex-1 overflow-y-auto py-2">
+      <div className="min-h-0 flex-1 overflow-y-auto py-2">
         {timeline.map((item) =>
           item.kind === 'broadcast' ? (
             <BroadcastCard
@@ -246,7 +246,7 @@ export function MemberTalkPage() {
       )}
 
       {/* Input bar */}
-      <div className="border-t border-border bg-bg-card px-3 py-2 pb-16 safe-area-bottom">
+      <div className="border-t border-border bg-bg-card px-3 py-2">
         <div className="flex items-end gap-2">
           <button
             onClick={() => setShowRichMenu(!showRichMenu)}
