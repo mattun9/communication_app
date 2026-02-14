@@ -17,8 +17,10 @@ const AuthContext = createContext<AuthContextType>({
 const createDummyUser = (role: 'admin' | 'member'): User => ({
   uid: role === 'admin' ? 'admin-001' : 'member-001',
   name: role === 'admin' ? '田中コーチ' : '山田 太郎',
+  nameKana: role === 'admin' ? 'タナカ コーチ' : 'ヤマダ タロウ',
   role,
   classId: 'class-a',
+  classIds: ['class-a'],
   email: role === 'admin' ? 'tanaka@example.com' : 'yamada@example.com',
   createdAt: new Date(),
 })

@@ -1,14 +1,90 @@
-import type { Message, Broadcast, ReadStatus, Absence, CalendarEvent, User } from '../types'
+import type { Message, Broadcast, ReadStatus, Absence, CalendarEvent, User, Classroom, UserClassroom, TemplateMessage } from '../types'
+
+// --- 教室マスタ ---
+export const DUMMY_CLASSROOMS: Classroom[] = [
+  { id: 'class-a', name: 'Aクラス', sportCategory: 'サッカー', createdAt: new Date('2025-01-01') },
+  { id: 'class-b', name: 'Bクラス', sportCategory: 'サッカー', createdAt: new Date('2025-01-01') },
+  { id: 'class-c', name: 'Cクラス', sportCategory: 'バスケットボール', createdAt: new Date('2025-03-01') },
+  { id: 'class-d', name: 'Dクラス', sportCategory: 'テニス', createdAt: new Date('2025-06-01') },
+  { id: 'class-e', name: 'Eクラス', sportCategory: 'バレーボール', createdAt: new Date('2025-09-01') },
+]
+
+// --- クラス選択肢 ---
+export const CLASS_OPTIONS = DUMMY_CLASSROOMS.map(c => ({ value: c.id, label: c.name }))
 
 // --- ユーザー ---
 export const DUMMY_MEMBERS: User[] = [
-  { uid: 'member-001', name: '山田 太郎', role: 'member', classId: 'class-a', email: 'yamada@example.com', createdAt: new Date('2025-04-01') },
-  { uid: 'member-002', name: '鈴木 花子', role: 'member', classId: 'class-a', email: 'suzuki@example.com', createdAt: new Date('2025-04-01') },
-  { uid: 'member-003', name: '佐々木 一郎', role: 'member', classId: 'class-b', email: 'sasaki@example.com', createdAt: new Date('2025-05-01') },
-  { uid: 'member-004', name: '高橋 美咲', role: 'member', classId: 'class-b', email: 'takahashi@example.com', createdAt: new Date('2025-06-01') },
-  { uid: 'member-005', name: '伊藤 健太', role: 'member', classId: 'class-a', email: 'ito@example.com', createdAt: new Date('2025-07-01') },
-  { uid: 'member-006', name: '渡辺 さくら', role: 'member', classId: 'class-c', email: 'watanabe@example.com', createdAt: new Date('2025-04-15') },
-  { uid: 'member-007', name: '中村 大輔', role: 'member', classId: 'class-c', email: 'nakamura@example.com', createdAt: new Date('2025-05-15') },
+  // class-a (12 members: member-001~005, 008~014)
+  { uid: 'member-001', name: '山田 太郎', nameKana: 'ヤマダ タロウ', role: 'member' as const, classId: 'class-a', classIds: ['class-a'], phone: '090-1234-5678', memberNumber: 'M001', email: 'yamada.taro@example.com', createdAt: new Date('2025-04-01') },
+  { uid: 'member-002', name: '鈴木 花子', nameKana: 'スズキ ハナコ', role: 'member' as const, classId: 'class-a', classIds: ['class-a'], phone: '090-2345-6789', memberNumber: 'M002', email: 'suzuki.hanako@example.com', createdAt: new Date('2025-04-01') },
+  { uid: 'member-003', name: '佐々木 一郎', nameKana: 'ササキ イチロウ', role: 'member' as const, classId: 'class-b', classIds: ['class-b'], phone: '090-3456-7890', memberNumber: 'M003', email: 'sasaki.ichiro@example.com', createdAt: new Date('2025-05-01') },
+  { uid: 'member-004', name: '高橋 美咲', nameKana: 'タカハシ ミサキ', role: 'member' as const, classId: 'class-b', classIds: ['class-b'], phone: '090-4567-8901', memberNumber: 'M004', email: 'takahashi.misaki@example.com', createdAt: new Date('2025-06-01') },
+  { uid: 'member-005', name: '伊藤 健太', nameKana: 'イトウ ケンタ', role: 'member' as const, classId: 'class-a', classIds: ['class-a'], phone: '090-5678-9012', memberNumber: 'M005', email: 'ito.kenta@example.com', createdAt: new Date('2025-07-01') },
+  { uid: 'member-006', name: '渡辺 さくら', nameKana: 'ワタナベ サクラ', role: 'member' as const, classId: 'class-c', classIds: ['class-c'], phone: '090-6789-0123', memberNumber: 'M006', email: 'watanabe.sakura@example.com', createdAt: new Date('2025-04-15') },
+  { uid: 'member-007', name: '中村 大輔', nameKana: 'ナカムラ ダイスケ', role: 'member' as const, classId: 'class-c', classIds: ['class-c'], phone: '090-7890-1234', memberNumber: 'M007', email: 'nakamura.daisuke@example.com', createdAt: new Date('2025-05-15') },
+  { uid: 'member-008', name: '小林 悠斗', nameKana: 'コバヤシ ユウト', role: 'member' as const, classId: 'class-a', classIds: ['class-a'], phone: '090-8901-2345', memberNumber: 'M008', email: 'kobayashi.yuto@example.com', createdAt: new Date('2025-04-10') },
+  { uid: 'member-009', name: '加藤 陽菜', nameKana: 'カトウ ヒナ', role: 'member' as const, classId: 'class-a', classIds: ['class-a'], phone: '090-9012-3456', memberNumber: 'M009', email: 'kato.hina@example.com', createdAt: new Date('2025-04-15') },
+  { uid: 'member-010', name: '吉田 蓮', nameKana: 'ヨシダ レン', role: 'member' as const, classId: 'class-a', classIds: ['class-a', 'class-b'], phone: '090-0123-4567', memberNumber: 'M010', email: 'yoshida.ren@example.com', createdAt: new Date('2025-05-01') },
+  { uid: 'member-011', name: '松本 結衣', nameKana: 'マツモト ユイ', role: 'member' as const, classId: 'class-a', classIds: ['class-a'], phone: '090-1111-2222', memberNumber: 'M011', email: 'matsumoto.yui@example.com', createdAt: new Date('2025-05-10') },
+  { uid: 'member-012', name: '井上 翔太', nameKana: 'イノウエ ショウタ', role: 'member' as const, classId: 'class-a', classIds: ['class-a'], phone: '090-2222-3333', memberNumber: 'M012', email: 'inoue.shota@example.com', createdAt: new Date('2025-06-01') },
+  { uid: 'member-013', name: '木村 凛', nameKana: 'キムラ リン', role: 'member' as const, classId: 'class-a', classIds: ['class-a', 'class-c'], phone: '090-3333-4444', memberNumber: 'M013', email: 'kimura.rin@example.com', createdAt: new Date('2025-06-15') },
+  { uid: 'member-014', name: '林 颯太', nameKana: 'ハヤシ ソウタ', role: 'member' as const, classId: 'class-a', classIds: ['class-a'], phone: '090-4444-5555', memberNumber: 'M014', email: 'hayashi.sota@example.com', createdAt: new Date('2025-07-01') },
+  // class-b (10 members: member-003, 004, 015~022; member-010 also in class-b)
+  { uid: 'member-015', name: '清水 葵', nameKana: 'シミズ アオイ', role: 'member' as const, classId: 'class-b', classIds: ['class-b'], phone: '090-5555-6666', memberNumber: 'M015', email: 'shimizu.aoi@example.com', createdAt: new Date('2025-04-01') },
+  { uid: 'member-016', name: '山口 大翔', nameKana: 'ヤマグチ ヒロト', role: 'member' as const, classId: 'class-b', classIds: ['class-b'], phone: '090-6666-7777', memberNumber: 'M016', email: 'yamaguchi.hiroto@example.com', createdAt: new Date('2025-04-15') },
+  { uid: 'member-017', name: '森 真央', nameKana: 'モリ マオ', role: 'member' as const, classId: 'class-b', classIds: ['class-b', 'class-d'], phone: '090-7777-8888', memberNumber: 'M017', email: 'mori.mao@example.com', createdAt: new Date('2025-05-01') },
+  { uid: 'member-018', name: '池田 陸', nameKana: 'イケダ リク', role: 'member' as const, classId: 'class-b', classIds: ['class-b'], phone: '090-8888-9999', memberNumber: 'M018', email: 'ikeda.riku@example.com', createdAt: new Date('2025-05-15') },
+  { uid: 'member-019', name: '橋本 彩乃', nameKana: 'ハシモト アヤノ', role: 'member' as const, classId: 'class-b', classIds: ['class-b'], phone: '090-9999-0000', memberNumber: 'M019', email: 'hashimoto.ayano@example.com', createdAt: new Date('2025-06-01') },
+  { uid: 'member-020', name: '阿部 奏太', nameKana: 'アベ ソウタ', role: 'member' as const, classId: 'class-b', classIds: ['class-b'], phone: '090-1010-2020', memberNumber: 'M020', email: 'abe.sota@example.com', createdAt: new Date('2025-06-15') },
+  { uid: 'member-021', name: '石川 愛莉', nameKana: 'イシカワ アイリ', role: 'member' as const, classId: 'class-b', classIds: ['class-b', 'class-a'], phone: '090-2020-3030', memberNumber: 'M021', email: 'ishikawa.airi@example.com', createdAt: new Date('2025-07-01') },
+  { uid: 'member-022', name: '前田 湊', nameKana: 'マエダ ミナト', role: 'member' as const, classId: 'class-b', classIds: ['class-b'], phone: '090-3030-4040', memberNumber: 'M022', email: 'maeda.minato@example.com', createdAt: new Date('2025-07-15') },
+  // class-c (10 members: member-006, 007, 023~030; member-013 also in class-c)
+  { uid: 'member-023', name: '藤田 心優', nameKana: 'フジタ ミユ', role: 'member' as const, classId: 'class-c', classIds: ['class-c'], phone: '090-4040-5050', memberNumber: 'M023', email: 'fujita.miyu@example.com', createdAt: new Date('2025-04-01') },
+  { uid: 'member-024', name: '後藤 蒼空', nameKana: 'ゴトウ ソラ', role: 'member' as const, classId: 'class-c', classIds: ['class-c'], phone: '090-5050-6060', memberNumber: 'M024', email: 'goto.sora@example.com', createdAt: new Date('2025-04-15') },
+  { uid: 'member-025', name: '岡田 莉子', nameKana: 'オカダ リコ', role: 'member' as const, classId: 'class-c', classIds: ['class-c', 'class-e'], phone: '090-6060-7070', memberNumber: 'M025', email: 'okada.riko@example.com', createdAt: new Date('2025-05-01') },
+  { uid: 'member-026', name: '村上 颯真', nameKana: 'ムラカミ ソウマ', role: 'member' as const, classId: 'class-c', classIds: ['class-c'], phone: '090-7070-8080', memberNumber: 'M026', email: 'murakami.soma@example.com', createdAt: new Date('2025-05-15') },
+  { uid: 'member-027', name: '近藤 咲良', nameKana: 'コンドウ サクラ', role: 'member' as const, classId: 'class-c', classIds: ['class-c'], phone: '090-8080-9090', memberNumber: 'M027', email: 'kondo.sakura@example.com', createdAt: new Date('2025-06-01') },
+  { uid: 'member-028', name: '坂本 悠真', nameKana: 'サカモト ユウマ', role: 'member' as const, classId: 'class-c', classIds: ['class-c'], phone: '090-9090-0101', memberNumber: 'M028', email: 'sakamoto.yuma@example.com', createdAt: new Date('2025-06-15') },
+  { uid: 'member-029', name: '遠藤 ひまり', nameKana: 'エンドウ ヒマリ', role: 'member' as const, classId: 'class-c', classIds: ['class-c', 'class-d'], phone: '090-0101-1212', memberNumber: 'M029', email: 'endo.himari@example.com', createdAt: new Date('2025-07-01') },
+  { uid: 'member-030', name: '青木 朝陽', nameKana: 'アオキ アサヒ', role: 'member' as const, classId: 'class-c', classIds: ['class-c'], phone: '090-1212-2323', memberNumber: 'M030', email: 'aoki.asahi@example.com', createdAt: new Date('2025-07-15') },
+  // class-d (9 members: member-031~039; member-017 and member-029 also in class-d)
+  { uid: 'member-031', name: '藤井 楓', nameKana: 'フジイ カエデ', role: 'member' as const, classId: 'class-d', classIds: ['class-d'], phone: '090-2323-3434', memberNumber: 'M031', email: 'fujii.kaede@example.com', createdAt: new Date('2025-06-01') },
+  { uid: 'member-032', name: '西村 律', nameKana: 'ニシムラ リツ', role: 'member' as const, classId: 'class-d', classIds: ['class-d'], phone: '090-3434-4545', memberNumber: 'M032', email: 'nishimura.ritsu@example.com', createdAt: new Date('2025-06-15') },
+  { uid: 'member-033', name: '福田 芽依', nameKana: 'フクダ メイ', role: 'member' as const, classId: 'class-d', classIds: ['class-d', 'class-e'], phone: '090-4545-5656', memberNumber: 'M033', email: 'fukuda.mei@example.com', createdAt: new Date('2025-07-01') },
+  { uid: 'member-034', name: '太田 暖', nameKana: 'オオタ ダン', role: 'member' as const, classId: 'class-d', classIds: ['class-d'], phone: '090-5656-6767', memberNumber: 'M034', email: 'ota.dan@example.com', createdAt: new Date('2025-07-15') },
+  { uid: 'member-035', name: '三浦 杏', nameKana: 'ミウラ アン', role: 'member' as const, classId: 'class-d', classIds: ['class-d'], phone: '090-6767-7878', memberNumber: 'M035', email: 'miura.an@example.com', createdAt: new Date('2025-08-01') },
+  { uid: 'member-036', name: '岡本 海斗', nameKana: 'オカモト カイト', role: 'member' as const, classId: 'class-d', classIds: ['class-d'], phone: '090-7878-8989', memberNumber: 'M036', email: 'okamoto.kaito@example.com', createdAt: new Date('2025-08-15') },
+  { uid: 'member-037', name: '松田 紬', nameKana: 'マツダ ツムギ', role: 'member' as const, classId: 'class-d', classIds: ['class-d', 'class-b'], phone: '090-8989-9090', memberNumber: 'M037', email: 'matsuda.tsumugi@example.com', createdAt: new Date('2025-09-01') },
+  { uid: 'member-038', name: '中島 瑛太', nameKana: 'ナカジマ エイタ', role: 'member' as const, classId: 'class-d', classIds: ['class-d'], phone: '090-9191-0202', memberNumber: 'M038', email: 'nakajima.eita@example.com', createdAt: new Date('2025-09-15') },
+  { uid: 'member-039', name: '原田 柚葉', nameKana: 'ハラダ ユズハ', role: 'member' as const, classId: 'class-d', classIds: ['class-d'], phone: '090-0202-1313', memberNumber: 'M039', email: 'harada.yuzuha@example.com', createdAt: new Date('2025-10-01') },
+  // class-e (9 members: member-040~048; member-025 and member-033 also in class-e)
+  { uid: 'member-040', name: '小川 陽翔', nameKana: 'オガワ ハルト', role: 'member' as const, classId: 'class-e', classIds: ['class-e'], phone: '090-1313-2424', memberNumber: 'M040', email: 'ogawa.haruto@example.com', createdAt: new Date('2025-09-01') },
+  { uid: 'member-041', name: '長谷川 琴音', nameKana: 'ハセガワ コトネ', role: 'member' as const, classId: 'class-e', classIds: ['class-e'], phone: '090-2424-3535', memberNumber: 'M041', email: 'hasegawa.kotone@example.com', createdAt: new Date('2025-09-15') },
+  { uid: 'member-042', name: '村田 蒼士', nameKana: 'ムラタ アオシ', role: 'member' as const, classId: 'class-e', classIds: ['class-e', 'class-a'], phone: '090-3535-4646', memberNumber: 'M042', email: 'murata.aoshi@example.com', createdAt: new Date('2025-10-01') },
+  { uid: 'member-043', name: '野口 詩織', nameKana: 'ノグチ シオリ', role: 'member' as const, classId: 'class-e', classIds: ['class-e'], phone: '090-4646-5757', memberNumber: 'M043', email: 'noguchi.shiori@example.com', createdAt: new Date('2025-10-15') },
+  { uid: 'member-044', name: '竹内 壮真', nameKana: 'タケウチ ソウマ', role: 'member' as const, classId: 'class-e', classIds: ['class-e'], phone: '090-5757-6868', memberNumber: 'M044', email: 'takeuchi.soma@example.com', createdAt: new Date('2025-11-01') },
+  { uid: 'member-045', name: '金子 七海', nameKana: 'カネコ ナナミ', role: 'member' as const, classId: 'class-e', classIds: ['class-e', 'class-c'], phone: '090-6868-7979', memberNumber: 'M045', email: 'kaneko.nanami@example.com', createdAt: new Date('2025-11-15') },
+  { uid: 'member-046', name: '和田 大和', nameKana: 'ワダ ヤマト', role: 'member' as const, classId: 'class-e', classIds: ['class-e'], phone: '090-7979-8080', memberNumber: 'M046', email: 'wada.yamato@example.com', createdAt: new Date('2025-12-01') },
+  { uid: 'member-047', name: '上田 真白', nameKana: 'ウエダ マシロ', role: 'member' as const, classId: 'class-e', classIds: ['class-e'], phone: '090-8181-9292', memberNumber: 'M047', email: 'ueda.mashiro@example.com', createdAt: new Date('2025-12-15') },
+  { uid: 'member-048', name: '杉山 奏', nameKana: 'スギヤマ カナデ', role: 'member' as const, classId: 'class-e', classIds: ['class-e'], phone: '090-9292-0303', memberNumber: 'M048', email: 'sugiyama.kanade@example.com', createdAt: new Date('2025-12-20') },
+  // remaining 2 members spread across existing classes
+  { uid: 'member-049', name: '平野 晴', nameKana: 'ヒラノ ハル', role: 'member' as const, classId: 'class-a', classIds: ['class-a', 'class-d'], phone: '090-0303-1414', memberNumber: 'M049', email: 'hirano.haru@example.com', createdAt: new Date('2025-08-01') },
+  { uid: 'member-050', name: '田村 凜', nameKana: 'タムラ リン', role: 'member' as const, classId: 'class-b', classIds: ['class-b', 'class-e'], phone: '090-1414-2525', memberNumber: 'M050', email: 'tamura.rin@example.com', createdAt: new Date('2025-08-15') },
+]
+
+// --- 会員-教室紐づけ ---
+export const DUMMY_USER_CLASSROOMS: UserClassroom[] = DUMMY_MEMBERS.flatMap(m =>
+  m.classIds.map(classroomId => ({ userId: m.uid, classroomId }))
+)
+
+// --- 定型文 ---
+export const DEFAULT_TEMPLATES: TemplateMessage[] = [
+  { id: 'tpl-1', text: 'ご連絡ありがとうございます。確認いたしました。', order: 1, createdAt: new Date('2025-01-01') },
+  { id: 'tpl-2', text: '承知いたしました。ありがとうございます。', order: 2, createdAt: new Date('2025-01-01') },
+  { id: 'tpl-3', text: '本日の練習は通常通り行います。', order: 3, createdAt: new Date('2025-01-01') },
+  { id: 'tpl-4', text: '天候不良のため本日の練習は中止とします。', order: 4, createdAt: new Date('2025-01-01') },
+  { id: 'tpl-5', text: 'お大事にしてください。回復をお祈りしています。', order: 5, createdAt: new Date('2025-01-01') },
+  { id: 'tpl-6', text: '詳細は後日改めてご連絡いたします。', order: 6, createdAt: new Date('2025-01-01') },
 ]
 
 // --- セグメント配信 ---
@@ -185,14 +261,8 @@ export const DUMMY_EVENTS: CalendarEvent[] = [
 ]
 
 // --- ヘルパー ---
-export const CLASS_OPTIONS = [
-  { value: 'class-a', label: 'Aクラス' },
-  { value: 'class-b', label: 'Bクラス' },
-  { value: 'class-c', label: 'Cクラス' },
-] as const
-
 export function getClassLabel(classId: string): string {
-  return CLASS_OPTIONS.find((c) => c.value === classId)?.label ?? classId
+  return DUMMY_CLASSROOMS.find((c) => c.id === classId)?.name ?? classId
 }
 
 export function getTargetLabel(bc: Broadcast): string {
@@ -204,7 +274,17 @@ export function getTargetLabel(bc: Broadcast): string {
 export function getTargetMemberCount(bc: Broadcast): number {
   if (bc.targetType === 'all') return DUMMY_MEMBERS.length
   if (bc.targetType === 'class') {
-    return DUMMY_MEMBERS.filter((m) => bc.targetClassIds.includes(m.classId)).length
+    return DUMMY_MEMBERS.filter((m) => m.classIds.some(id => bc.targetClassIds.includes(id))).length
   }
   return bc.targetUserIds?.length ?? 0
+}
+
+export function getMemberClassrooms(userId: string): Classroom[] {
+  const member = DUMMY_MEMBERS.find(m => m.uid === userId)
+  if (!member) return []
+  return DUMMY_CLASSROOMS.filter(c => member.classIds.includes(c.id))
+}
+
+export function getClassroomMembers(classroomId: string): User[] {
+  return DUMMY_MEMBERS.filter(m => m.classIds.includes(classroomId))
 }

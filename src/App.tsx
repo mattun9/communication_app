@@ -15,6 +15,8 @@ import { AdminDashboard } from './pages/admin/Dashboard'
 import { AdminInbox } from './pages/admin/Inbox'
 import { AdminBroadcastManager } from './pages/admin/BroadcastManager'
 import { AdminSchedule } from './pages/admin/Schedule'
+import { AdminMemberManagement } from './pages/admin/MemberManagement'
+import { AdminClassroomManagement } from './pages/admin/ClassroomManagement'
 
 export default function App() {
   return (
@@ -35,6 +37,8 @@ export default function App() {
             <Route path="inbox" element={<AdminInbox />} />
             <Route path="broadcasts" element={<AdminBroadcastManager />} />
             <Route path="schedule" element={<AdminSchedule />} />
+            <Route path="members" element={<AdminMemberManagement />} />
+            <Route path="classrooms" element={<AdminClassroomManagement />} />
             <Route index element={<Navigate to="dashboard" replace />} />
           </Route>
 

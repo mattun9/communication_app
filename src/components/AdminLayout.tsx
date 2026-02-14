@@ -5,6 +5,8 @@ import {
   Inbox,
   Megaphone,
   CalendarDays,
+  Users,
+  School,
   ArrowRightLeft,
   LogOut,
 } from 'lucide-react'
@@ -14,6 +16,8 @@ const navItems = [
   { path: '/admin/inbox', label: 'インボックス', icon: Inbox },
   { path: '/admin/broadcasts', label: '配信管理', icon: Megaphone },
   { path: '/admin/schedule', label: 'スケジュール', icon: CalendarDays },
+  { path: '/admin/members', label: '会員管理', icon: Users },
+  { path: '/admin/classrooms', label: '教室管理', icon: School },
 ] as const
 
 export function AdminLayout() {
