@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
-import { Search, ChevronUp, ChevronDown, Download, Upload, FileDown, X, Plus, Pencil } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Search, ChevronUp, ChevronDown, Download, Upload, FileDown, X, Plus, Pencil, MessageCircle } from 'lucide-react'
 import { DUMMY_MEMBERS, DUMMY_CLASSROOMS, getClassLabel, CLASS_OPTIONS } from '../../lib/dummyData'
 import { exportMembersToCSV, generateCSVTemplate, downloadCSV } from '../../lib/csvUtils'
 import { CSVImportModal } from '../../components/CSVImportModal'
@@ -46,6 +47,7 @@ function getSortValue(member: User, field: SortField): string | number {
 }
 
 export function AdminMemberManagement() {
+  const navigate = useNavigate()
   const [members, setMembers] = useState<User[]>(DUMMY_MEMBERS.filter(m => m.role === 'member'))
   const [searchQuery, setSearchQuery] = useState('')
   const [sortField, setSortField] = useState<SortField>('memberNumber')
@@ -499,7 +501,16 @@ export function AdminMemberManagement() {
             </div>
 
             {/* Modal footer */}
-            <div className="flex justify-end border-t border-border px-5 py-3">
+            <div className="flex justify-between border-t border-border px-5 py-3">
+              <button
+                onClick={() => {
+                  navigate(`/admin/inbox?member=${selectedMember.uid}`)
+                }}
+                className="flex items-center gap-1.5 rounded-lg border border-primary/30 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/5"
+              >
+                <MessageCircle size={14} />
+                トークを開く
+              </button>
               <button
                 onClick={() => setSelectedMember(null)}
                 className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary/90"
