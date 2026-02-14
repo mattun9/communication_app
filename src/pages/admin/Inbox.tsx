@@ -55,6 +55,18 @@ export function AdminInbox() {
       if (firstWithMsg) setSelectedMember(firstWithMsg)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // メンバー選択時: そのメンバーからの未読メッセージを既読にする
+  useEffect(() => {
+    if (!selectedMember) return
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.senderUid === selectedMember.uid && m.senderRole === 'member' && !m.isReadByRecipient
+          ? { ...m, isReadByRecipient: true, readAt: new Date() }
+          : m
+      )
+    )
+  }, [selectedMember]) // eslint-disable-line react-hooks/exhaustive-deps
   const [inputText, setInputText] = useState('')
   const [filter, setFilter] = useState<'all' | 'unread' | 'absence'>('all')
 
@@ -224,7 +236,7 @@ export function AdminInbox() {
       {/* Left: Member list */}
       <div className="flex w-72 shrink-0 flex-col border-r border-border bg-bg-card">
         <div className="border-b border-border px-4 py-3">
-          <h2 className="mb-2 text-sm font-bold text-text">インボックス</h2>
+          <h2 className="mb-2 text-sm font-bold text-text">チャット</h2>
 
           {/* Search input */}
           <div className="relative mb-2">
@@ -263,6 +275,10 @@ export function AdminInbox() {
             const lastMsg = getLastMessage(member.uid)
             const isSelected = selectedMember?.uid === member.uid
             const hasAbsence = getMemberAbsences(member.uid).length > 0
+            // 未読カウント: 会員からの未読メッセージ数
+            const unreadCount = messages.filter(
+              (m) => m.senderUid === member.uid && m.senderRole === 'member' && !m.isReadByRecipient && !m.isDeleted
+            ).length
 
             return (
               <button
@@ -272,19 +288,31 @@ export function AdminInbox() {
                   isSelected ? 'bg-primary/5' : 'hover:bg-bg'
                 }`}
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
+                <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
                   {member.name.charAt(0)}
+                  {unreadCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-0.5 text-[9px] font-bold text-white">
+                      {unreadCount}
+                    </span>
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-text">
+                    <span className={`text-sm font-semibold ${unreadCount > 0 ? 'text-text' : 'text-text'}`}>
                       {member.name}
                     </span>
-                    {hasAbsence && (
-                      <CalendarOff size={13} className="text-danger" />
-                    )}
+                    <div className="flex items-center gap-1">
+                      {hasAbsence && (
+                        <CalendarOff size={13} className="text-danger" />
+                      )}
+                      {lastMsg && (
+                        <span className="text-[10px] text-text-secondary">
+                          {lastMsg.createdAt.getHours()}:{String(lastMsg.createdAt.getMinutes()).padStart(2, '0')}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <p className="truncate text-xs text-text-secondary">
+                  <p className={`truncate text-xs ${unreadCount > 0 ? 'font-medium text-text' : 'text-text-secondary'}`}>
                     {lastMsg?.text ?? 'メッセージなし'}
                   </p>
                 </div>
@@ -421,12 +449,6 @@ export function AdminInbox() {
                 }
 
                 // Normal messages
-                // For admin messages, check if the member has read it
-                // (heuristic: member sent a message after this admin message)
-                const isRead = isAdmin && chatMessages.some(
-                  (m) => m.senderRole === 'member' && m.createdAt > msg.createdAt
-                )
-
                 return (
                   <div
                     key={msg.id}
@@ -461,9 +483,10 @@ export function AdminInbox() {
                           {formatTime(msg.createdAt)}
                         </p>
                       </div>
+                      {/* 管理者メッセージに控えめな既読バッジ (LINE風) */}
                       {isAdmin && (
-                        <p className={`mt-0.5 text-right text-[10px] ${isRead ? 'text-primary' : 'text-text-secondary'}`}>
-                          {isRead ? '既読' : '未読'}
+                        <p className={`mt-0.5 text-right text-[10px] ${msg.isReadByRecipient ? 'text-primary/70' : 'text-transparent'}`}>
+                          {msg.isReadByRecipient ? '既読' : ''}
                         </p>
                       )}
                     </div>
@@ -608,7 +631,7 @@ export function AdminInbox() {
           </>
         ) : (
           <div className="flex flex-1 items-center justify-center">
-            <p className="text-sm text-text-secondary">会員を選択してください</p>
+            <p className="text-sm text-text-secondary">メンバーを選択してください</p>
           </div>
         )}
       </div>

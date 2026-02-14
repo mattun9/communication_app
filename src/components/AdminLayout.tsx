@@ -10,15 +10,33 @@ import {
   ArrowRightLeft,
   LogOut,
 } from 'lucide-react'
+import { DUMMY_MESSAGES, DUMMY_BROADCASTS, DUMMY_READ_STATUSES, getTargetMemberCount } from '../lib/dummyData'
 
 const navItems = [
-  { path: '/admin/dashboard', label: 'ダッシュボード', icon: LayoutDashboard },
-  { path: '/admin/inbox', label: 'チャット', icon: MessageCircle },
-  { path: '/admin/broadcasts', label: '配信管理', icon: Megaphone },
-  { path: '/admin/schedule', label: 'スケジュール', icon: CalendarDays },
-  { path: '/admin/members', label: 'メンバー', icon: Users },
-  { path: '/admin/classrooms', label: '教室管理', icon: School },
+  { path: '/admin/dashboard', label: 'ダッシュボード', icon: LayoutDashboard, badgeKey: null },
+  { path: '/admin/inbox', label: 'チャット', icon: MessageCircle, badgeKey: 'chat' },
+  { path: '/admin/broadcasts', label: '配信管理', icon: Megaphone, badgeKey: 'broadcast' },
+  { path: '/admin/schedule', label: 'スケジュール', icon: CalendarDays, badgeKey: null },
+  { path: '/admin/members', label: 'メンバー', icon: Users, badgeKey: null },
+  { path: '/admin/classrooms', label: '教室管理', icon: School, badgeKey: null },
 ] as const
+
+function getBadgeCount(key: string | null): number {
+  if (key === 'chat') {
+    // 会員からの未読メッセージ数
+    return DUMMY_MESSAGES.filter((m) => m.senderRole === 'member' && !m.isReadByRecipient && !m.isDeleted).length
+  }
+  if (key === 'broadcast') {
+    // 未読者がいる配信数
+    return DUMMY_BROADCASTS.filter((bc) => {
+      if (bc.status !== 'sent') return false
+      const reads = DUMMY_READ_STATUSES.filter((r) => r.broadcastId === bc.id).length
+      const total = getTargetMemberCount(bc)
+      return reads < total
+    }).length
+  }
+  return 0
+}
 
 export function AdminLayout() {
   const location = useLocation()
@@ -35,8 +53,9 @@ export function AdminLayout() {
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-4">
-          {navItems.map(({ path, label, icon: Icon }) => {
+          {navItems.map(({ path, label, icon: Icon, badgeKey }) => {
             const isActive = location.pathname.startsWith(path)
+            const badgeCount = getBadgeCount(badgeKey)
             return (
               <button
                 key={path}
@@ -47,7 +66,14 @@ export function AdminLayout() {
                     : 'text-text-secondary hover:bg-bg hover:text-text'
                 }`}
               >
-                <Icon size={18} />
+                <div className="relative">
+                  <Icon size={18} />
+                  {badgeCount > 0 && (
+                    <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-0.5 text-[9px] font-bold text-white">
+                      {badgeCount > 99 ? '99+' : badgeCount}
+                    </span>
+                  )}
+                </div>
                 {label}
               </button>
             )

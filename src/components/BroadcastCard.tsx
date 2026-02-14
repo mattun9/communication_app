@@ -1,5 +1,7 @@
-import { AlertTriangle, ChevronRight } from 'lucide-react'
+import { AlertTriangle, ChevronRight, Hash } from 'lucide-react'
 import type { Broadcast } from '../types'
+import { getTargetLabelForMember } from '../lib/dummyData'
+import { useAuth } from '../hooks/useAuth'
 
 function formatTime(date: Date): string {
   const now = new Date()
@@ -18,7 +20,9 @@ interface BroadcastCardProps {
 }
 
 export function BroadcastCard({ broadcast, isRead, onOpen }: BroadcastCardProps) {
+  const { user } = useAuth()
   const sentAt = broadcast.sentAt ?? broadcast.createdAt
+  const segmentLabels = getTargetLabelForMember(broadcast, user?.classIds ?? [])
 
   if (broadcast.status === 'recalled') {
     return (
@@ -49,14 +53,25 @@ export function BroadcastCard({ broadcast, isRead, onOpen }: BroadcastCardProps)
       >
         {broadcast.imageUrl && (
           <div className="h-36 w-full overflow-hidden bg-bg">
-            <img
-              src={broadcast.imageUrl}
-              alt=""
-              className="h-full w-full object-cover"
-            />
+            <img src={broadcast.imageUrl} alt="" className="h-full w-full object-cover" />
           </div>
         )}
         <div className="p-3.5">
+          {/* セグメントラベル (自分のクラス優先) */}
+          <div className="mb-1.5 flex flex-wrap items-center gap-1">
+            {segmentLabels.map((label, i) => (
+              <span
+                key={label}
+                className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                  i === 0 && broadcast.targetType === 'class'
+                    ? 'bg-primary/15 text-primary'
+                    : 'bg-bg text-text-secondary'
+                }`}
+              >
+                <Hash size={9} />{label}
+              </span>
+            ))}
+          </div>
           {broadcast.isImportant && (
             <div className="mb-1.5 flex items-center gap-1 text-accent">
               <AlertTriangle size={13} />

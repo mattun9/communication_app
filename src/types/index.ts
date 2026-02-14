@@ -29,6 +29,9 @@ export interface Message {
   // 送信取り消し
   isDeleted?: boolean
   deletedAt?: Date
+  // 既読
+  isReadByRecipient?: boolean
+  readAt?: Date
   // 日時指定配信
   isScheduled?: boolean
   scheduledAt?: Date
