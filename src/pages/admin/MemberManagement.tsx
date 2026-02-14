@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, ChevronUp, ChevronDown, Download, Upload, FileDown, X, Plus, Pencil, MessageCircle } from 'lucide-react'
+import { Search, ChevronUp, ChevronDown, Download, Upload, FileDown, X, Plus, Pencil, MessageCircle, Trash2 } from 'lucide-react'
 import { DUMMY_MEMBERS, DUMMY_CLASSROOMS, getClassLabel, CLASS_OPTIONS } from '../../lib/dummyData'
 import { exportMembersToCSV, generateCSVTemplate, downloadCSV } from '../../lib/csvUtils'
 import { CSVImportModal } from '../../components/CSVImportModal'
@@ -9,14 +9,14 @@ import type { User } from '../../types'
 type SortField = 'memberNumber' | 'name' | 'nameKana' | 'phone' | 'email' | 'classIds' | 'createdAt'
 
 const COLUMNS: { key: SortField; label: string }[] = [
-  { key: 'memberNumber', label: '会員番号' },
+  { key: 'memberNumber', label: '会員ID' },
   { key: 'name', label: '氏名' },
   { key: 'nameKana', label: 'フリガナ' },
   { key: 'phone', label: '電話番号' },
   { key: 'email', label: 'メールアドレス' },
   { key: 'classIds', label: '教室' },
   { key: 'createdAt', label: '登録日' },
-]
+] as const
 
 function formatDate(date: Date): string {
   const y = date.getFullYear()
@@ -62,6 +62,7 @@ export function AdminMemberManagement() {
   const [editPhone, setEditPhone] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [showClassDropdown, setShowClassDropdown] = useState(false)
+  const [deleteConfirmMember, setDeleteConfirmMember] = useState<User | null>(null)
 
   const filteredMembers = useMemo(() => {
     let result = members
@@ -182,6 +183,12 @@ export function AdminMemberManagement() {
     setEditingEmail(false)
   }
 
+  const handleDeleteMember = (member: User) => {
+    setMembers((prev) => prev.filter((m) => m.uid !== member.uid))
+    setDeleteConfirmMember(null)
+    setSelectedMember(null)
+  }
+
   const availableClassrooms = selectedMember
     ? DUMMY_CLASSROOMS.filter((c) => !selectedMember.classIds.includes(c.id))
     : []
@@ -192,7 +199,7 @@ export function AdminMemberManagement() {
       <div className="bg-bg-card border-b border-border">
         <div className="px-6 py-4">
           <div className="mb-4 flex items-center gap-3">
-            <h1 className="text-xl font-bold text-text">会員管理</h1>
+            <h1 className="text-xl font-bold text-text">メンバー</h1>
             <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
               {filteredMembers.length}名
             </span>
@@ -204,7 +211,7 @@ export function AdminMemberManagement() {
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
               <input
                 type="text"
-                placeholder="会員を検索..."
+                placeholder="メンバーを検索..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full rounded-lg border border-border bg-bg px-3 py-2 pl-9 text-sm text-text placeholder:text-text-secondary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
@@ -279,6 +286,7 @@ export function AdminMemberManagement() {
                     </span>
                   </th>
                 ))}
+                <th className="whitespace-nowrap px-4 py-3 font-medium text-text-secondary"></th>
               </tr>
             </thead>
             <tbody>
@@ -318,12 +326,24 @@ export function AdminMemberManagement() {
                   <td className="whitespace-nowrap px-4 py-3 text-text-secondary">
                     {formatDate(member.createdAt)}
                   </td>
+                  <td className="whitespace-nowrap px-4 py-3">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate(`/admin/inbox?member=${member.uid}`)
+                      }}
+                      className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+                    >
+                      <MessageCircle size={14} />
+                      チャット
+                    </button>
+                  </td>
                 </tr>
               ))}
               {filteredMembers.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-sm text-text-secondary">
-                    該当する会員が見つかりません
+                  <td colSpan={8} className="px-4 py-12 text-center text-sm text-text-secondary">
+                    該当するメンバーが見つかりません
                   </td>
                 </tr>
               )}
@@ -360,7 +380,7 @@ export function AdminMemberManagement() {
             <div className="space-y-4 px-5 py-4">
               {/* Member number */}
               <div>
-                <label className="mb-1 block text-xs font-medium text-text-secondary">会員番号</label>
+                <label className="mb-1 block text-xs font-medium text-text-secondary">会員ID</label>
                 <p className="font-mono text-sm text-text">{selectedMember.memberNumber ?? '-'}</p>
               </div>
 
@@ -501,21 +521,62 @@ export function AdminMemberManagement() {
             </div>
 
             {/* Modal footer */}
-            <div className="flex justify-between border-t border-border px-5 py-3">
-              <button
-                onClick={() => {
-                  navigate(`/admin/inbox?member=${selectedMember.uid}`)
-                }}
-                className="flex items-center gap-1.5 rounded-lg border border-primary/30 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/5"
-              >
-                <MessageCircle size={14} />
-                トークを開く
-              </button>
+            <div className="flex items-center justify-between border-t border-border px-5 py-3">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    navigate(`/admin/inbox?member=${selectedMember.uid}`)
+                  }}
+                  className="flex items-center gap-1.5 rounded-lg border border-primary/30 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/5"
+                >
+                  <MessageCircle size={14} />
+                  チャットを開く
+                </button>
+                <button
+                  onClick={() => setDeleteConfirmMember(selectedMember)}
+                  className="flex items-center gap-1.5 rounded-lg border border-danger/30 px-4 py-2 text-sm font-medium text-danger transition-colors hover:bg-danger/5"
+                >
+                  <Trash2 size={14} />
+                  削除
+                </button>
+              </div>
               <button
                 onClick={() => setSelectedMember(null)}
                 className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary/90"
               >
                 閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmMember && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
+          onClick={() => setDeleteConfirmMember(null)}
+        >
+          <div
+            className="mx-4 w-full max-w-sm rounded-2xl bg-bg-card p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-2 text-base font-bold text-text">メンバーを削除</h3>
+            <p className="mb-4 text-sm text-text-secondary">
+              <span className="font-medium text-text">{deleteConfirmMember.name}</span> を削除しますか？この操作は取り消せません。
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setDeleteConfirmMember(null)}
+                className="rounded-lg px-4 py-2 text-sm text-text-secondary hover:bg-bg"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={() => handleDeleteMember(deleteConfirmMember)}
+                className="rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white"
+              >
+                削除
               </button>
             </div>
           </div>

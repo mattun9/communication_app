@@ -21,6 +21,8 @@ export function AdminClassroomManagement() {
   const [formCategory, setFormCategory] = useState('')
   const [customCategories, setCustomCategories] = useState<string[]>([])
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
 
   // Merge default + custom + existing categories from classrooms
   const allCategories = Array.from(new Set([
@@ -70,6 +72,21 @@ export function AdminClassroomManagement() {
   const handleDelete = (id: string) => {
     setClassrooms((prev) => prev.filter((c) => c.id !== id))
     setDeleteConfirmId(null)
+  }
+
+  const handleAddCategory = () => {
+    const name = newCategoryName.trim()
+    if (!name) return
+    if (allCategories.includes(name)) return
+    setCustomCategories((prev) => [...prev, name])
+    setNewCategoryName('')
+  }
+
+  const handleDeleteCategory = (cat: string) => {
+    // Only allow deleting custom categories (not defaults or in-use)
+    const isInUse = classrooms.some((c) => c.sportCategory === cat)
+    if (isInUse) return
+    setCustomCategories((prev) => prev.filter((c) => c !== cat))
   }
 
   return (
@@ -162,12 +179,6 @@ export function AdminClassroomManagement() {
                 <label className="mb-1.5 block text-xs font-bold text-text-secondary">
                   種目カテゴリ
                 </label>
-                <input
-                  value={formCategory}
-                  onChange={(e) => setFormCategory(e.target.value)}
-                  placeholder="カテゴリを入力または選択"
-                  className="mb-2 w-full rounded-lg border border-border bg-bg px-3 py-2.5 text-sm text-text placeholder:text-text-secondary/50 focus:border-primary focus:outline-none"
-                />
                 <div className="flex flex-wrap gap-2">
                   {allCategories.map((cat) => (
                     <button
@@ -182,7 +193,16 @@ export function AdminClassroomManagement() {
                       {cat}
                     </button>
                   ))}
+                  <button
+                    onClick={() => setShowCategoryModal(true)}
+                    className="flex items-center justify-center rounded-full border-2 border-dashed border-border px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:border-primary/30 hover:text-primary"
+                  >
+                    <Plus size={14} />
+                  </button>
                 </div>
+                {!formCategory && (
+                  <p className="mt-1.5 text-xs text-text-secondary">カテゴリを選択してください</p>
+                )}
               </div>
             </div>
             <div className="flex justify-end gap-2 border-t border-border px-4 py-3">
@@ -199,6 +219,68 @@ export function AdminClassroomManagement() {
               >
                 {editingId ? '更新' : '追加'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Category Management Modal */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
+          <div className="mx-4 w-full max-w-sm rounded-2xl bg-bg-card shadow-xl">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <h2 className="text-base font-bold text-text">カテゴリ管理</h2>
+              <button
+                onClick={() => setShowCategoryModal(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-bg"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4">
+              <div className="mb-4 flex items-center gap-2">
+                <input
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleAddCategory() }}
+                  placeholder="新しいカテゴリ名"
+                  className="flex-1 rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text placeholder:text-text-secondary/50 focus:border-primary focus:outline-none"
+                />
+                <button
+                  onClick={handleAddCategory}
+                  disabled={!newCategoryName.trim()}
+                  className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white disabled:opacity-30"
+                >
+                  追加
+                </button>
+              </div>
+              <div className="max-h-60 space-y-1 overflow-y-auto">
+                {allCategories.map((cat) => {
+                  const isInUse = classrooms.some((c) => c.sportCategory === cat)
+                  const isDefault = DEFAULT_SPORT_CATEGORIES.includes(cat)
+                  return (
+                    <div
+                      key={cat}
+                      className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-bg"
+                    >
+                      <span className="text-sm text-text">{cat}</span>
+                      <div className="flex items-center gap-2">
+                        {isInUse && (
+                          <span className="text-[11px] text-text-secondary">使用中</span>
+                        )}
+                        {!isDefault && !isInUse && (
+                          <button
+                            onClick={() => handleDeleteCategory(cat)}
+                            className="flex h-7 w-7 items-center justify-center rounded-full text-text-secondary hover:bg-danger/10 hover:text-danger"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </div>
         </div>
