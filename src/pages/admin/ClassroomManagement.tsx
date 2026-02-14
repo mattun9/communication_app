@@ -20,13 +20,14 @@ export function AdminClassroomManagement() {
   const [formName, setFormName] = useState('')
   const [formCategory, setFormCategory] = useState('')
   const [customCategories, setCustomCategories] = useState<string[]>([])
+  const [removedDefaultCategories, setRemovedDefaultCategories] = useState<string[]>([])
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
 
-  // Merge default + custom + existing categories from classrooms
+  // Merge default (minus removed) + custom + existing categories from classrooms
   const allCategories = Array.from(new Set([
-    ...DEFAULT_SPORT_CATEGORIES,
+    ...DEFAULT_SPORT_CATEGORIES.filter((c) => !removedDefaultCategories.includes(c)),
     ...customCategories,
     ...classrooms.map((c) => c.sportCategory),
   ])).filter(Boolean)
@@ -83,10 +84,14 @@ export function AdminClassroomManagement() {
   }
 
   const handleDeleteCategory = (cat: string) => {
-    // Only allow deleting custom categories (not defaults or in-use)
     const isInUse = classrooms.some((c) => c.sportCategory === cat)
     if (isInUse) return
-    setCustomCategories((prev) => prev.filter((c) => c !== cat))
+    if (DEFAULT_SPORT_CATEGORIES.includes(cat)) {
+      setRemovedDefaultCategories((prev) => [...prev, cat])
+    } else {
+      setCustomCategories((prev) => prev.filter((c) => c !== cat))
+    }
+    if (formCategory === cat) setFormCategory('')
   }
 
   return (
@@ -257,7 +262,6 @@ export function AdminClassroomManagement() {
               <div className="max-h-60 space-y-1 overflow-y-auto">
                 {allCategories.map((cat) => {
                   const isInUse = classrooms.some((c) => c.sportCategory === cat)
-                  const isDefault = DEFAULT_SPORT_CATEGORIES.includes(cat)
                   return (
                     <div
                       key={cat}
@@ -268,7 +272,7 @@ export function AdminClassroomManagement() {
                         {isInUse && (
                           <span className="text-[11px] text-text-secondary">使用中</span>
                         )}
-                        {!isDefault && !isInUse && (
+                        {!isInUse && (
                           <button
                             onClick={() => handleDeleteCategory(cat)}
                             className="flex h-7 w-7 items-center justify-center rounded-full text-text-secondary hover:bg-danger/10 hover:text-danger"
