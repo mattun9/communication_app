@@ -20,6 +20,21 @@ interface BroadcastCardProps {
 export function BroadcastCard({ broadcast, isRead, onOpen }: BroadcastCardProps) {
   const sentAt = broadcast.sentAt ?? broadcast.createdAt
 
+  if (broadcast.status === 'recalled') {
+    return (
+      <div className="px-4 py-2">
+        <div className="w-full overflow-hidden rounded-2xl border border-border bg-bg-card opacity-60">
+          <div className="p-3.5">
+            <p className="text-sm italic text-text-secondary">この配信は取り消されました</p>
+            <div className="mt-1">
+              <span className="text-[11px] text-text-secondary">{formatTime(sentAt)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="px-4 py-2">
       <button

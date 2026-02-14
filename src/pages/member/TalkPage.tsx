@@ -1,9 +1,14 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { BroadcastCard } from '../../components/BroadcastCard'
 import { BroadcastDetailModal } from '../../components/BroadcastDetailModal'
 import { AbsenceForm } from '../../components/AbsenceForm'
-import { SendHorizontal, Paperclip, CalendarOff, Bell } from 'lucide-react'
+import { AbsenceCard } from '../../components/AbsenceCard'
+import { AttachmentPreview } from '../../components/AttachmentPreview'
+import { ImagePreviewModal } from '../../components/ImagePreviewModal'
+import { FileAttachmentButton } from '../../components/FileAttachmentButton'
+import { MessageContextMenu } from '../../components/MessageContextMenu'
+import { SendHorizontal, CalendarOff, Bell, Ban, X } from 'lucide-react'
 import {
   DUMMY_BROADCASTS,
   DUMMY_MESSAGES,
@@ -26,7 +31,53 @@ type TimelineItem =
   | { kind: 'broadcast'; data: Broadcast; time: Date }
   | { kind: 'message'; data: Message; time: Date }
 
-function ChatBubble({ message, isMine }: { message: Message; isMine: boolean }) {
+function ChatBubble({
+  message,
+  isMine,
+  onLongPress,
+  onImageClick,
+}: {
+  message: Message
+  isMine: boolean
+  onLongPress: (messageId: string, x: number, y: number) => void
+  onImageClick: (url: string) => void
+}) {
+  const touchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const touchPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
+    onLongPress(message.id, e.clientX, e.clientY)
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0]
+    touchPos.current = { x: touch.clientX, y: touch.clientY }
+    touchTimer.current = setTimeout(() => {
+      onLongPress(message.id, touchPos.current.x, touchPos.current.y)
+    }, 500)
+  }
+
+  const handleTouchEnd = () => {
+    if (touchTimer.current) {
+      clearTimeout(touchTimer.current)
+      touchTimer.current = null
+    }
+  }
+
+  const handleTouchMove = () => {
+    if (touchTimer.current) {
+      clearTimeout(touchTimer.current)
+      touchTimer.current = null
+    }
+  }
+
+  // Absence card rendering
+  if (message.type === 'absence') {
+    return <AbsenceCard message={message} />
+  }
+
+  // System message rendering
   if (message.type === 'system') {
     return (
       <div className="flex justify-center px-4 py-1.5">
@@ -37,19 +88,48 @@ function ChatBubble({ message, isMine }: { message: Message; isMine: boolean }) 
     )
   }
 
+  // Deleted message rendering
+  if (message.isDeleted) {
+    return (
+      <div className={`flex px-4 py-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
+        <div className={`flex max-w-[75%] flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+          <div className="flex items-center gap-1.5 rounded-2xl bg-bg px-4 py-2.5">
+            <Ban size={14} className="text-text-secondary" />
+            <p className="text-sm italic text-text-secondary">
+              このメッセージは取り消されました
+            </p>
+          </div>
+          <span className="mt-0.5 text-[10px] text-text-secondary">
+            {formatTime(message.createdAt)}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  // My message bubble
   if (isMine) {
     return (
-      <div className="flex justify-end px-4 py-1">
+      <div
+        className="flex justify-end px-4 py-1"
+        onContextMenu={handleContextMenu}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchMove={handleTouchMove}
+      >
         <div className="flex max-w-[75%] flex-col items-end">
           <div className="rounded-2xl rounded-tr-sm bg-bubble-mine px-4 py-2.5">
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-white">
               {message.text}
             </p>
-            {message.attachmentUrl && (
-              <div className="mt-1.5 flex items-center gap-1 text-white/70">
-                <Paperclip size={12} />
-                <span className="text-[11px]">添付ファイル</span>
-              </div>
+            {message.attachmentUrl && message.attachmentType && (
+              <AttachmentPreview
+                url={message.attachmentUrl}
+                type={message.attachmentType}
+                fileName={message.attachmentName}
+                onImageClick={() => onImageClick(message.attachmentUrl!)}
+                variant="dark"
+              />
             )}
           </div>
           <span className="mt-0.5 text-[10px] text-text-secondary">
@@ -60,8 +140,15 @@ function ChatBubble({ message, isMine }: { message: Message; isMine: boolean }) 
     )
   }
 
+  // Other's message bubble
   return (
-    <div className="flex justify-start px-4 py-1">
+    <div
+      className="flex justify-start px-4 py-1"
+      onContextMenu={handleContextMenu}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchMove={handleTouchMove}
+    >
       <div className="flex max-w-[80%] items-start gap-2">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-white">
           {message.senderName.charAt(0)}
@@ -74,11 +161,14 @@ function ChatBubble({ message, isMine }: { message: Message; isMine: boolean }) 
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-text">
               {message.text}
             </p>
-            {message.attachmentUrl && (
-              <div className="mt-1.5 flex items-center gap-1 text-primary">
-                <Paperclip size={12} />
-                <span className="text-[11px]">添付ファイル</span>
-              </div>
+            {message.attachmentUrl && message.attachmentType && (
+              <AttachmentPreview
+                url={message.attachmentUrl}
+                type={message.attachmentType}
+                fileName={message.attachmentName}
+                onImageClick={() => onImageClick(message.attachmentUrl!)}
+                variant="light"
+              />
             )}
           </div>
           <span className="mt-0.5 block text-[10px] text-text-secondary">
@@ -101,14 +191,17 @@ export function MemberTalkPage() {
   const [showAbsenceForm, setShowAbsenceForm] = useState(false)
   const [inputText, setInputText] = useState('')
   const [showRichMenu, setShowRichMenu] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ messageId: string; x: number; y: number } | null>(null)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [pendingAttachment, setPendingAttachment] = useState<{ file: File; url: string; type: 'image' | 'pdf' } | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // ユーザーに関係する配信のみ
+  // ユーザーに関係する配信のみ (sent + recalled)
   const visibleBroadcasts = useMemo(
     () =>
       DUMMY_BROADCASTS.filter(
         (bc) =>
-          bc.status === 'sent' &&
+          (bc.status === 'sent' || bc.status === 'recalled') &&
           (bc.targetType === 'all' ||
             (bc.targetType === 'class' && user && bc.targetClassIds.includes(user.classId)))
       ),
@@ -117,7 +210,7 @@ export function MemberTalkPage() {
 
   // 未読の重要お知らせ
   const unreadImportant = visibleBroadcasts.filter(
-    (bc) => bc.isImportant && !readBroadcasts.has(bc.id)
+    (bc) => bc.isImportant && !readBroadcasts.has(bc.id) && bc.status === 'sent'
   )
 
   // タイムラインを時系列で統合
@@ -129,8 +222,9 @@ export function MemberTalkPage() {
     messages
       .filter(
         (m) =>
-          m.senderUid === user?.uid ||
-          m.recipientUid === user?.uid
+          !m.isScheduled &&
+          (m.senderUid === user?.uid ||
+            m.recipientUid === user?.uid)
       )
       .forEach((m) => items.push({ kind: 'message', data: m, time: m.createdAt }))
     return items.sort((a, b) => a.time.getTime() - b.time.getTime())
@@ -146,7 +240,7 @@ export function MemberTalkPage() {
   }
 
   const handleSendMessage = () => {
-    if (!inputText.trim() || !user) return
+    if ((!inputText.trim() && !pendingAttachment) || !user) return
     const newMsg: Message = {
       id: String(Date.now()),
       text: inputText.trim(),
@@ -155,28 +249,53 @@ export function MemberTalkPage() {
       senderName: user.name,
       senderRole: user.role,
       recipientUid: 'admin-001',
+      attachmentUrl: pendingAttachment?.url,
+      attachmentType: pendingAttachment?.type,
+      attachmentName: pendingAttachment?.file.name,
       createdAt: new Date(),
     }
     setMessages((prev) => [...prev, newMsg])
     setInputText('')
+    setPendingAttachment(null)
     setShowRichMenu(false)
   }
 
   const handleAbsenceSubmit = (data: { date: string; reason: string; note: string }) => {
     if (!user) return
-    const systemMsg: Message = {
+    const absenceMsg: Message = {
       id: String(Date.now()),
-      text: `${data.date} のお休み連絡を受け付けました（理由: ${data.reason}）`,
-      type: 'system',
-      senderUid: 'system',
-      senderName: 'システム',
-      senderRole: 'admin',
+      text: `${data.date} のお休み連絡`,
+      type: 'absence',
+      senderUid: user.uid,
+      senderName: user.name,
+      senderRole: 'member',
+      recipientUid: 'admin-001',
+      absenceDate: data.date,
+      absenceReason: data.reason,
+      absenceNote: data.note || undefined,
       createdAt: new Date(),
     }
-    setMessages((prev) => [...prev, systemMsg])
+    setMessages((prev) => [...prev, absenceMsg])
     setShowAbsenceForm(false)
     setShowRichMenu(false)
   }
+
+  const handleUnsend = (messageId: string) => {
+    setMessages(prev => prev.map(m => m.id === messageId ? { ...m, isDeleted: true, deletedAt: new Date() } : m))
+    setContextMenu(null)
+  }
+
+  const handleContextMenu = useCallback((messageId: string, x: number, y: number) => {
+    setContextMenu({ messageId, x, y })
+  }, [])
+
+  const handleImageClick = useCallback((url: string) => {
+    setPreviewImage(url)
+  }, [])
+
+  const handleFileSelect = useCallback((file: File, previewUrl: string, fileType: 'image' | 'pdf') => {
+    setPendingAttachment({ file, url: previewUrl, type: fileType })
+  }, [])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -184,6 +303,10 @@ export function MemberTalkPage() {
       handleSendMessage()
     }
   }
+
+  const contextMessage = contextMenu
+    ? messages.find((m) => m.id === contextMenu.messageId)
+    : null
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -210,22 +333,40 @@ export function MemberTalkPage() {
 
       {/* Timeline */}
       <div className="min-h-0 flex-1 overflow-y-auto py-2">
-        {timeline.map((item) =>
-          item.kind === 'broadcast' ? (
-            <BroadcastCard
-              key={item.data.id}
-              broadcast={item.data}
-              isRead={readBroadcasts.has(item.data.id)}
-              onOpen={handleOpenBroadcast}
-            />
-          ) : (
+        {timeline.map((item) => {
+          if (item.kind === 'broadcast') {
+            const broadcast = item.data
+            if (broadcast.status === 'recalled') {
+              return (
+                <div key={broadcast.id} className="px-4 py-2">
+                  <div className="flex items-center gap-2 rounded-2xl border border-border bg-bg px-4 py-3">
+                    <Ban size={14} className="text-text-secondary" />
+                    <span className="text-sm italic text-text-secondary">
+                      この配信は取り消されました
+                    </span>
+                  </div>
+                </div>
+              )
+            }
+            return (
+              <BroadcastCard
+                key={broadcast.id}
+                broadcast={broadcast}
+                isRead={readBroadcasts.has(broadcast.id)}
+                onOpen={handleOpenBroadcast}
+              />
+            )
+          }
+          return (
             <ChatBubble
               key={item.data.id}
               message={item.data}
               isMine={item.data.senderUid === user?.uid}
+              onLongPress={handleContextMenu}
+              onImageClick={handleImageClick}
             />
           )
-        )}
+        })}
         <div ref={bottomRef} />
       </div>
 
@@ -245,6 +386,34 @@ export function MemberTalkPage() {
         </div>
       )}
 
+      {/* Pending attachment preview strip */}
+      {pendingAttachment && (
+        <div className="border-t border-border bg-bg px-3 py-2">
+          <div className="flex items-center gap-2">
+            {pendingAttachment.type === 'image' ? (
+              <img
+                src={pendingAttachment.url}
+                alt="添付プレビュー"
+                className="h-12 w-12 rounded-lg object-cover"
+              />
+            ) : (
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-bg-card">
+                <span className="text-[10px] font-bold text-primary">PDF</span>
+              </div>
+            )}
+            <span className="flex-1 truncate text-xs text-text-secondary">
+              {pendingAttachment.file.name}
+            </span>
+            <button
+              onClick={() => setPendingAttachment(null)}
+              className="flex h-6 w-6 items-center justify-center rounded-full bg-bg-card text-text-secondary hover:bg-border"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Input bar */}
       <div className="border-t border-border bg-bg-card px-3 py-2">
         <div className="flex items-end gap-2">
@@ -260,6 +429,7 @@ export function MemberTalkPage() {
               <line x1="12" y1="3" x2="12" y2="12" />
             </svg>
           </button>
+          <FileAttachmentButton onFileSelect={handleFileSelect} />
           <textarea
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
@@ -271,7 +441,7 @@ export function MemberTalkPage() {
           />
           <button
             onClick={handleSendMessage}
-            disabled={!inputText.trim()}
+            disabled={!inputText.trim() && !pendingAttachment}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary transition-opacity disabled:opacity-30"
           >
             <SendHorizontal size={18} className="text-white" />
@@ -290,6 +460,25 @@ export function MemberTalkPage() {
         <AbsenceForm
           onClose={() => setShowAbsenceForm(false)}
           onSubmit={handleAbsenceSubmit}
+        />
+      )}
+      {contextMenu && contextMessage && user && (
+        <MessageContextMenu
+          message={contextMessage}
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          currentUserUid={user.uid}
+          onUnsend={handleUnsend}
+          onCopy={(text) => {
+            navigator.clipboard.writeText(text)
+            setContextMenu(null)
+          }}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+      {previewImage && (
+        <ImagePreviewModal
+          url={previewImage}
+          onClose={() => setPreviewImage(null)}
         />
       )}
     </div>

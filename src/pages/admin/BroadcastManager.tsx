@@ -11,6 +11,10 @@ import {
   ChevronDown,
   ChevronUp,
   RotateCcw,
+  Undo2,
+  Pencil,
+  Trash2,
+  Save,
 } from 'lucide-react'
 import {
   DUMMY_BROADCASTS,
@@ -121,17 +125,27 @@ function AnalyticsPanel({ broadcast }: { broadcast: Broadcast }) {
 }
 
 // --- 配信作成モーダル ---
-function ComposePanel({ onClose, onSend }: {
+function ComposePanel({ onClose, onSend, onSaveDraft, editingDraft }: {
   onClose: () => void
   onSend: (bc: Omit<Broadcast, 'id' | 'createdAt' | 'createdBy'>) => void
+  onSaveDraft: (bc: Omit<Broadcast, 'id' | 'createdAt' | 'createdBy'>) => void
+  editingDraft?: Broadcast | null
 }) {
-  const [title, setTitle] = useState('')
-  const [body, setBody] = useState('')
-  const [targetType, setTargetType] = useState<'all' | 'class'>('all')
-  const [targetClassIds, setTargetClassIds] = useState<string[]>([])
-  const [isImportant, setIsImportant] = useState(false)
-  const [scheduleMode, setScheduleMode] = useState<'now' | 'scheduled'>('now')
-  const [scheduledAt, setScheduledAt] = useState('')
+  const [title, setTitle] = useState(editingDraft?.title ?? '')
+  const [body, setBody] = useState(editingDraft?.body ?? '')
+  const [targetType, setTargetType] = useState<'all' | 'class'>(
+    editingDraft?.targetType === 'class' ? 'class' : 'all'
+  )
+  const [targetClassIds, setTargetClassIds] = useState<string[]>(editingDraft?.targetClassIds ?? [])
+  const [isImportant, setIsImportant] = useState(editingDraft?.isImportant ?? false)
+  const [scheduleMode, setScheduleMode] = useState<'now' | 'scheduled'>(
+    editingDraft?.scheduledAt ? 'scheduled' : 'now'
+  )
+  const [scheduledAt, setScheduledAt] = useState(
+    editingDraft?.scheduledAt
+      ? new Date(editingDraft.scheduledAt.getTime() - editingDraft.scheduledAt.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+      : ''
+  )
 
   const toggleClass = (id: string) => {
     setTargetClassIds((prev) =>
@@ -139,18 +153,25 @@ function ComposePanel({ onClose, onSend }: {
     )
   }
 
+  const buildData = (status: Broadcast['status']): Omit<Broadcast, 'id' | 'createdAt' | 'createdBy'> => ({
+    title: title.trim(),
+    body: body.trim(),
+    targetType,
+    targetClassIds: targetType === 'all' ? [] : targetClassIds,
+    isImportant,
+    status,
+    sentAt: status === 'sent' ? new Date() : undefined,
+    scheduledAt: scheduleMode === 'scheduled' && scheduledAt ? new Date(scheduledAt) : undefined,
+  })
+
   const handleSend = () => {
     if (!title.trim() || !body.trim()) return
-    onSend({
-      title: title.trim(),
-      body: body.trim(),
-      targetType,
-      targetClassIds: targetType === 'all' ? [] : targetClassIds,
-      isImportant,
-      status: scheduleMode === 'now' ? 'sent' : 'scheduled',
-      sentAt: scheduleMode === 'now' ? new Date() : undefined,
-      scheduledAt: scheduleMode === 'scheduled' && scheduledAt ? new Date(scheduledAt) : undefined,
-    })
+    onSend(buildData(scheduleMode === 'now' ? 'sent' : 'scheduled'))
+  }
+
+  const handleDraft = () => {
+    if (!title.trim()) return
+    onSaveDraft(buildData('draft'))
   }
 
   return (
@@ -284,6 +305,14 @@ function ComposePanel({ onClose, onSend }: {
             キャンセル
           </button>
           <button
+            onClick={handleDraft}
+            disabled={!title.trim()}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium text-text-secondary transition-opacity hover:bg-bg disabled:opacity-40"
+          >
+            <Save size={14} />
+            下書き保存
+          </button>
+          <button
             onClick={handleSend}
             disabled={!title.trim() || !body.trim()}
             className="flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-sm font-bold text-white transition-opacity disabled:opacity-40"
@@ -302,22 +331,74 @@ export function AdminBroadcastManager() {
   const [broadcasts, setBroadcasts] = useState(DUMMY_BROADCASTS)
   const [selectedId, setSelectedId] = useState<string | null>(broadcasts[0]?.id ?? null)
   const [showCompose, setShowCompose] = useState(false)
+  const [editingDraft, setEditingDraft] = useState<Broadcast | null>(null)
   const [tabFilter, setTabFilter] = useState<'sent' | 'scheduled' | 'draft'>('sent')
+  const [recallConfirmId, setRecallConfirmId] = useState<string | null>(null)
 
-  const filtered = broadcasts.filter((bc) => bc.status === tabFilter)
+  const filtered = broadcasts.filter((bc) =>
+    tabFilter === 'sent' ? bc.status === 'sent' || bc.status === 'recalled' : bc.status === tabFilter
+  )
   const selected = broadcasts.find((bc) => bc.id === selectedId) ?? null
 
   const handleCreate = (data: Omit<Broadcast, 'id' | 'createdAt' | 'createdBy'>) => {
-    const newBc: Broadcast = {
-      ...data,
-      id: String(Date.now()),
-      createdBy: 'admin-001',
-      createdAt: new Date(),
+    if (editingDraft) {
+      setBroadcasts((prev) =>
+        prev.map((bc) =>
+          bc.id === editingDraft.id ? { ...bc, ...data, sentAt: data.sentAt ?? bc.sentAt } : bc
+        )
+      )
+      setEditingDraft(null)
+    } else {
+      const newBc: Broadcast = {
+        ...data,
+        id: String(Date.now()),
+        createdBy: 'admin-001',
+        createdAt: new Date(),
+      }
+      setBroadcasts((prev) => [newBc, ...prev])
+      setSelectedId(newBc.id)
     }
-    setBroadcasts((prev) => [newBc, ...prev])
-    setSelectedId(newBc.id)
     setShowCompose(false)
     if (data.status === 'scheduled') setTabFilter('scheduled')
+  }
+
+  const handleSaveDraft = (data: Omit<Broadcast, 'id' | 'createdAt' | 'createdBy'>) => {
+    if (editingDraft) {
+      setBroadcasts((prev) =>
+        prev.map((bc) => (bc.id === editingDraft.id ? { ...bc, ...data } : bc))
+      )
+    } else {
+      const newBc: Broadcast = {
+        ...data,
+        id: String(Date.now()),
+        createdBy: 'admin-001',
+        createdAt: new Date(),
+      }
+      setBroadcasts((prev) => [newBc, ...prev])
+      setSelectedId(newBc.id)
+    }
+    setEditingDraft(null)
+    setShowCompose(false)
+    setTabFilter('draft')
+  }
+
+  const handleRecall = (id: string) => {
+    setBroadcasts((prev) =>
+      prev.map((bc) =>
+        bc.id === id ? { ...bc, status: 'recalled' as const, recalledAt: new Date() } : bc
+      )
+    )
+    setRecallConfirmId(null)
+  }
+
+  const handleDeleteDraft = (id: string) => {
+    setBroadcasts((prev) => prev.filter((bc) => bc.id !== id))
+    if (selectedId === id) setSelectedId(null)
+  }
+
+  const handleEditDraft = (bc: Broadcast) => {
+    setEditingDraft(bc)
+    setShowCompose(true)
   }
 
   return (
@@ -370,8 +451,9 @@ export function AdminBroadcastManager() {
                   }`}
                 >
                   <div className="mb-1 flex items-center gap-1.5">
-                    {bc.isImportant && <AlertTriangle size={12} className="text-accent" />}
-                    <span className="flex-1 truncate text-sm font-semibold text-text">
+                    {bc.isImportant && bc.status !== 'recalled' && <AlertTriangle size={12} className="text-accent" />}
+                    {bc.status === 'recalled' && <Undo2 size={12} className="text-text-secondary" />}
+                    <span className={`flex-1 truncate text-sm font-semibold ${bc.status === 'recalled' ? 'text-text-secondary line-through' : 'text-text'}`}>
                       {bc.title}
                     </span>
                   </div>
@@ -381,6 +463,9 @@ export function AdminBroadcastManager() {
                     </span>
                     {bc.status === 'sent' && (
                       <span className="text-[11px] font-medium text-primary">{rate}%</span>
+                    )}
+                    {bc.status === 'recalled' && (
+                      <span className="text-[11px] font-medium text-text-secondary">取消済み</span>
                     )}
                   </div>
                 </button>
@@ -406,22 +491,63 @@ export function AdminBroadcastManager() {
                     ? 'bg-success/10 text-success'
                     : selected.status === 'scheduled'
                       ? 'bg-primary/10 text-primary'
-                      : 'bg-bg text-text-secondary'
+                      : selected.status === 'recalled'
+                        ? 'bg-border text-text-secondary'
+                        : 'bg-bg text-text-secondary'
                 }`}>
-                  {selected.status === 'sent' ? '配信済み' : selected.status === 'scheduled' ? '予約中' : '下書き'}
+                  {selected.status === 'sent' ? '配信済み' : selected.status === 'scheduled' ? '予約中' : selected.status === 'recalled' ? '取消済み' : '下書き'}
                 </span>
               </div>
-              <h1 className="text-xl font-bold text-text">{selected.title}</h1>
+              <h1 className={`text-xl font-bold ${selected.status === 'recalled' ? 'text-text-secondary line-through' : 'text-text'}`}>
+                {selected.title}
+              </h1>
               <p className="mt-1 text-xs text-text-secondary">
                 対象: {getTargetLabel(selected)} ・ {formatDate(selected.sentAt ?? selected.scheduledAt ?? selected.createdAt)}
               </p>
+              {selected.status === 'recalled' && selected.recalledAt && (
+                <p className="mt-0.5 text-xs text-text-secondary">
+                  取消日時: {formatDate(selected.recalledAt)}
+                </p>
+              )}
             </div>
+
+            {/* Action buttons */}
+            {selected.status === 'sent' && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setRecallConfirmId(selected.id)}
+                  className="flex items-center gap-1.5 rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/5"
+                >
+                  <Undo2 size={14} />
+                  送信取り消し
+                </button>
+              </div>
+            )}
+
+            {selected.status === 'draft' && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleEditDraft(selected)}
+                  className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-bg"
+                >
+                  <Pencil size={14} />
+                  編集
+                </button>
+                <button
+                  onClick={() => handleDeleteDraft(selected.id)}
+                  className="flex items-center gap-1.5 rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/5"
+                >
+                  <Trash2 size={14} />
+                  削除
+                </button>
+              </div>
+            )}
 
             {selected.imageUrl && (
               <img src={selected.imageUrl} alt="" className="w-full rounded-xl" />
             )}
 
-            <div className="rounded-xl border border-border bg-bg-card p-4">
+            <div className={`rounded-xl border border-border bg-bg-card p-4 ${selected.status === 'recalled' ? 'opacity-50' : ''}`}>
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-text">
                 {selected.body}
               </p>
@@ -436,10 +562,41 @@ export function AdminBroadcastManager() {
         )}
       </div>
 
+      {/* Recall confirmation dialog */}
+      {recallConfirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="mx-4 w-full max-w-sm rounded-2xl bg-bg-card p-6 shadow-xl">
+            <h3 className="mb-2 text-base font-bold text-text">配信を取り消し</h3>
+            <p className="mb-4 text-sm text-text-secondary">
+              この配信を取り消しますか？会員側には「この配信は取り消されました」と表示されます。
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setRecallConfirmId(null)}
+                className="rounded-lg px-4 py-2 text-sm text-text-secondary hover:bg-bg"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={() => handleRecall(recallConfirmId)}
+                className="rounded-lg bg-danger px-4 py-2 text-sm font-medium text-white"
+              >
+                取り消す
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showCompose && (
         <ComposePanel
-          onClose={() => setShowCompose(false)}
+          onClose={() => {
+            setShowCompose(false)
+            setEditingDraft(null)
+          }}
           onSend={handleCreate}
+          onSaveDraft={handleSaveDraft}
+          editingDraft={editingDraft}
         />
       )}
     </div>
