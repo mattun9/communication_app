@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Search,
   SendHorizontal,
@@ -33,10 +34,27 @@ function formatTime(date: Date): string {
 }
 
 export function AdminInbox() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [selectedMember, setSelectedMember] = useState<
     (typeof DUMMY_MEMBERS)[number] | null
-  >(DUMMY_MEMBERS[0])
+  >(null)
   const [messages, setMessages] = useState<Message[]>(DUMMY_MESSAGES)
+
+  // Handle ?member=uid from MemberManagement navigation
+  useEffect(() => {
+    const memberUid = searchParams.get('member')
+    if (memberUid) {
+      const member = DUMMY_MEMBERS.find((m) => m.uid === memberUid)
+      if (member) setSelectedMember(member)
+      setSearchParams({}, { replace: true })
+    } else if (!selectedMember) {
+      // Default: select first member that has messages
+      const firstWithMsg = DUMMY_MEMBERS.find((m) =>
+        DUMMY_MESSAGES.some((msg) => msg.senderUid === m.uid || msg.recipientUid === m.uid)
+      )
+      if (firstWithMsg) setSelectedMember(firstWithMsg)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [inputText, setInputText] = useState('')
   const [filter, setFilter] = useState<'all' | 'unread' | 'absence'>('all')
 
@@ -83,10 +101,20 @@ export function AdminInbox() {
 
   // --- Filtered + searched members ---
   const filteredMembers = DUMMY_MEMBERS.filter((m) => {
+    // Only show members that have messages (or are specifically searched/navigated to)
+    const hasMessages = messages.some(
+      (msg) => msg.senderUid === m.uid || msg.recipientUid === m.uid
+    )
+
     // Apply tab filter
-    if (filter === 'absence' && getMemberAbsences(m.uid).length === 0) return false
-    if (filter === 'unread' && getLastMessage(m.uid)?.senderRole !== 'member')
-      return false
+    if (filter === 'absence') {
+      if (getMemberAbsences(m.uid).length === 0) return false
+    } else if (filter === 'unread') {
+      if (getLastMessage(m.uid)?.senderRole !== 'member') return false
+    } else {
+      // "all" tab: only show members with messages
+      if (!hasMessages) return false
+    }
 
     // Apply search query
     if (searchQuery.trim()) {
@@ -393,38 +421,51 @@ export function AdminInbox() {
                 }
 
                 // Normal messages
+                // For admin messages, check if the member has read it
+                // (heuristic: member sent a message after this admin message)
+                const isRead = isAdmin && chatMessages.some(
+                  (m) => m.senderRole === 'member' && m.createdAt > msg.createdAt
+                )
+
                 return (
                   <div
                     key={msg.id}
                     className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div
-                      className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
-                        isAdmin
-                          ? 'rounded-tr-sm bg-primary text-white'
-                          : 'rounded-tl-sm bg-bubble-other text-text'
-                      }`}
-                      onContextMenu={(e) => handleContextMenu(e, msg.id)}
-                    >
-                      <p className="whitespace-pre-wrap text-sm">{msg.text}</p>
-                      {msg.attachmentUrl && msg.attachmentType && (
-                        <AttachmentPreview
-                          url={msg.attachmentUrl}
-                          type={msg.attachmentType}
-                          fileName={msg.attachmentName}
-                          onImageClick={() =>
-                            setPreviewImage(msg.attachmentUrl ?? null)
-                          }
-                          variant={isAdmin ? 'dark' : 'light'}
-                        />
-                      )}
-                      <p
-                        className={`mt-1 text-[10px] ${
-                          isAdmin ? 'text-white/60' : 'text-text-secondary'
+                    <div>
+                      <div
+                        className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
+                          isAdmin
+                            ? 'ml-auto rounded-tr-sm bg-primary text-white'
+                            : 'rounded-tl-sm bg-bubble-other text-text'
                         }`}
+                        onContextMenu={(e) => handleContextMenu(e, msg.id)}
                       >
-                        {formatTime(msg.createdAt)}
-                      </p>
+                        <p className="whitespace-pre-wrap text-sm">{msg.text}</p>
+                        {msg.attachmentUrl && msg.attachmentType && (
+                          <AttachmentPreview
+                            url={msg.attachmentUrl}
+                            type={msg.attachmentType}
+                            fileName={msg.attachmentName}
+                            onImageClick={() =>
+                              setPreviewImage(msg.attachmentUrl ?? null)
+                            }
+                            variant={isAdmin ? 'dark' : 'light'}
+                          />
+                        )}
+                        <p
+                          className={`mt-1 text-[10px] ${
+                            isAdmin ? 'text-white/60' : 'text-text-secondary'
+                          }`}
+                        >
+                          {formatTime(msg.createdAt)}
+                        </p>
+                      </div>
+                      {isAdmin && (
+                        <p className={`mt-0.5 text-right text-[10px] ${isRead ? 'text-primary' : 'text-text-secondary'}`}>
+                          {isRead ? '既読' : '未読'}
+                        </p>
+                      )}
                     </div>
                   </div>
                 )

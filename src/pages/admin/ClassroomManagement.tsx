@@ -3,7 +3,7 @@ import { Plus, X, Pencil, Trash2, Users } from 'lucide-react'
 import { DUMMY_CLASSROOMS, getClassroomMembers } from '../../lib/dummyData'
 import type { Classroom } from '../../types'
 
-const SPORT_CATEGORIES = [
+const DEFAULT_SPORT_CATEGORIES = [
   'サッカー',
   'バスケットボール',
   'テニス',
@@ -11,7 +11,6 @@ const SPORT_CATEGORIES = [
   '野球',
   '水泳',
   '体操',
-  'その他',
 ]
 
 export function AdminClassroomManagement() {
@@ -19,13 +18,21 @@ export function AdminClassroomManagement() {
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formName, setFormName] = useState('')
-  const [formCategory, setFormCategory] = useState(SPORT_CATEGORIES[0])
+  const [formCategory, setFormCategory] = useState('')
+  const [customCategories, setCustomCategories] = useState<string[]>([])
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+
+  // Merge default + custom + existing categories from classrooms
+  const allCategories = Array.from(new Set([
+    ...DEFAULT_SPORT_CATEGORIES,
+    ...customCategories,
+    ...classrooms.map((c) => c.sportCategory),
+  ])).filter(Boolean)
 
   const openAdd = () => {
     setEditingId(null)
     setFormName('')
-    setFormCategory(SPORT_CATEGORIES[0])
+    setFormCategory('')
     setShowModal(true)
   }
 
@@ -37,7 +44,11 @@ export function AdminClassroomManagement() {
   }
 
   const handleSave = () => {
-    if (!formName.trim()) return
+    if (!formName.trim() || !formCategory.trim()) return
+    // If a new custom category was typed, persist it
+    if (formCategory.trim() && !allCategories.includes(formCategory.trim())) {
+      setCustomCategories((prev) => [...prev, formCategory.trim()])
+    }
     if (editingId) {
       setClassrooms((prev) =>
         prev.map((c) =>
@@ -151,8 +162,14 @@ export function AdminClassroomManagement() {
                 <label className="mb-1.5 block text-xs font-bold text-text-secondary">
                   種目カテゴリ
                 </label>
+                <input
+                  value={formCategory}
+                  onChange={(e) => setFormCategory(e.target.value)}
+                  placeholder="カテゴリを入力または選択"
+                  className="mb-2 w-full rounded-lg border border-border bg-bg px-3 py-2.5 text-sm text-text placeholder:text-text-secondary/50 focus:border-primary focus:outline-none"
+                />
                 <div className="flex flex-wrap gap-2">
-                  {SPORT_CATEGORIES.map((cat) => (
+                  {allCategories.map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setFormCategory(cat)}
@@ -177,7 +194,7 @@ export function AdminClassroomManagement() {
               </button>
               <button
                 onClick={handleSave}
-                disabled={!formName.trim()}
+                disabled={!formName.trim() || !formCategory.trim()}
                 className="rounded-lg bg-primary px-6 py-2 text-sm font-medium text-white shadow-sm disabled:opacity-30"
               >
                 {editingId ? '更新' : '追加'}
