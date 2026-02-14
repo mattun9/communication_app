@@ -185,6 +185,8 @@ export const DUMMY_MESSAGES: Message[] = [
     senderRole: 'admin',
     recipientUid: 'member-001',
     createdAt: new Date('2026-02-06T10:00:00'),
+    isReadByRecipient: true,
+    readAt: new Date('2026-02-06T10:10:00'),
   },
   {
     id: 'msg-2',
@@ -205,6 +207,8 @@ export const DUMMY_MESSAGES: Message[] = [
     senderRole: 'admin',
     recipientUid: 'member-001',
     createdAt: new Date('2026-02-06T10:20:00'),
+    isReadByRecipient: true,
+    readAt: new Date('2026-02-06T10:25:00'),
   },
   {
     id: 'msg-4',
@@ -269,6 +273,38 @@ export function getTargetLabel(bc: Broadcast): string {
   if (bc.targetType === 'all') return '全体'
   if (bc.targetType === 'class') return bc.targetClassIds.map(getClassLabel).join(', ')
   return '個別指定'
+}
+
+/** 管理者向け: 対象が多い場合に省略表示 (例: "Aクラス、他4件") */
+export function getTargetLabelShort(bc: Broadcast, maxShow = 2): string {
+  if (bc.targetType === 'all') return '全体'
+  if (bc.targetType === 'class') {
+    const labels = bc.targetClassIds.map(getClassLabel)
+    if (labels.length <= maxShow) return labels.join(', ')
+    return `${labels.slice(0, maxShow).join(', ')}、他${labels.length - maxShow}件`
+  }
+  return '個別指定'
+}
+
+/** 会員向け: 自分の所属クラスを先頭に表示 */
+export function getTargetLabelForMember(bc: Broadcast, userClassIds: string[]): string[] {
+  if (bc.targetType === 'all') return ['全体']
+  if (bc.targetType === 'class') {
+    const labels = bc.targetClassIds.map(id => ({ id, label: getClassLabel(id) }))
+    const mine = labels.filter(l => userClassIds.includes(l.id))
+    const others = labels.filter(l => !userClassIds.includes(l.id))
+    return [...mine.map(l => l.label), ...others.map(l => l.label)]
+  }
+  return ['個別']
+}
+
+/** 配信の対象メンバー一覧を返す */
+export function getTargetMembers(bc: Broadcast) {
+  if (bc.targetType === 'all') return DUMMY_MEMBERS.filter(m => m.role === 'member')
+  if (bc.targetType === 'class') {
+    return DUMMY_MEMBERS.filter(m => m.role === 'member' && m.classIds.some(id => bc.targetClassIds.includes(id)))
+  }
+  return DUMMY_MEMBERS.filter(m => bc.targetUserIds?.includes(m.uid))
 }
 
 export function getTargetMemberCount(bc: Broadcast): number {

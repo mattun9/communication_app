@@ -1,6 +1,7 @@
-import { X, AlertTriangle } from 'lucide-react'
+import { X, AlertTriangle, Hash } from 'lucide-react'
 import type { Broadcast } from '../types'
-import { getTargetLabel } from '../lib/dummyData'
+import { getTargetLabelForMember } from '../lib/dummyData'
+import { useAuth } from '../hooks/useAuth'
 
 interface BroadcastDetailModalProps {
   broadcast: Broadcast
@@ -8,7 +9,9 @@ interface BroadcastDetailModalProps {
 }
 
 export function BroadcastDetailModal({ broadcast, onClose }: BroadcastDetailModalProps) {
+  const { user } = useAuth()
   const sentAt = broadcast.sentAt ?? broadcast.createdAt
+  const segmentLabels = getTargetLabelForMember(broadcast, user?.classIds ?? [])
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={onClose}>
@@ -19,16 +22,25 @@ export function BroadcastDetailModal({ broadcast, onClose }: BroadcastDetailModa
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             {broadcast.isImportant && (
               <span className="flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-bold text-accent">
                 <AlertTriangle size={12} />
                 重要
               </span>
             )}
-            <span className="text-xs text-text-secondary">
-              {getTargetLabel(broadcast)}
-            </span>
+            {segmentLabels.map((label, i) => (
+              <span
+                key={label}
+                className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                  i === 0 && broadcast.targetType === 'class'
+                    ? 'bg-primary/15 text-primary'
+                    : 'bg-bg text-text-secondary'
+                }`}
+              >
+                <Hash size={9} />{label}
+              </span>
+            ))}
           </div>
           <button
             onClick={onClose}
@@ -42,11 +54,7 @@ export function BroadcastDetailModal({ broadcast, onClose }: BroadcastDetailModa
         <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(85dvh - 56px)' }}>
           {broadcast.imageUrl && (
             <div className="mb-4 overflow-hidden rounded-xl">
-              <img
-                src={broadcast.imageUrl}
-                alt=""
-                className="w-full object-cover"
-              />
+              <img src={broadcast.imageUrl} alt="" className="w-full object-cover" />
             </div>
           )}
 
