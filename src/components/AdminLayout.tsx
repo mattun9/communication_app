@@ -2,7 +2,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import {
   LayoutDashboard,
-  Inbox,
+  MessageCircle,
   Megaphone,
   CalendarDays,
   Users,
@@ -13,10 +13,10 @@ import {
 
 const navItems = [
   { path: '/admin/dashboard', label: 'ダッシュボード', icon: LayoutDashboard },
-  { path: '/admin/inbox', label: 'インボックス', icon: Inbox },
+  { path: '/admin/inbox', label: 'チャット', icon: MessageCircle },
   { path: '/admin/broadcasts', label: '配信管理', icon: Megaphone },
   { path: '/admin/schedule', label: 'スケジュール', icon: CalendarDays },
-  { path: '/admin/members', label: '会員管理', icon: Users },
+  { path: '/admin/members', label: 'メンバー', icon: Users },
   { path: '/admin/classrooms', label: '教室管理', icon: School },
 ] as const
 
