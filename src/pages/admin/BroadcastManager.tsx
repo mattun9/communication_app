@@ -185,41 +185,6 @@ function SegmentLabels({ broadcast, variant = 'normal' }: { broadcast: Broadcast
   return <span className="text-[11px] text-text-secondary">個別指定</span>
 }
 
-// --- 配信分析パネル ---
-function AnalyticsPanel({ broadcast, onShowDetail }: { broadcast: Broadcast; onShowDetail: () => void }) {
-  const reads = DUMMY_READ_STATUSES.filter((r) => r.broadcastId === broadcast.id)
-  const total = getTargetMemberCount(broadcast)
-  const readCount = reads.length
-  const rate = total > 0 ? Math.round((readCount / total) * 100) : 0
-  const unreadCount = total - readCount
-
-  return (
-    <div className="rounded-xl border border-border bg-bg p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-sm font-bold text-text">開封率</span>
-        <span className="text-2xl font-bold text-primary">{rate}%</span>
-      </div>
-      <div className="mb-3 h-3 overflow-hidden rounded-full bg-border">
-        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${rate}%` }} />
-      </div>
-      <button
-        onClick={onShowDetail}
-        className="flex w-full items-center justify-between rounded-lg bg-bg-card px-3 py-2.5 text-sm transition-colors hover:bg-border/50"
-      >
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1 text-text">
-            <Eye size={14} className="text-primary" /> 既読 <b>{readCount}</b>名
-          </span>
-          <span className="flex items-center gap-1 text-text">
-            <EyeOff size={14} className="text-text-secondary" /> 未読 <b className={unreadCount > 0 ? 'text-danger' : ''}>{unreadCount}</b>名
-          </span>
-        </div>
-        <span className="text-xs text-primary">詳細を見る →</span>
-      </button>
-    </div>
-  )
-}
-
 // --- 配信作成モーダル ---
 function ComposePanel({ onClose, onSend, onSaveDraft, editingDraft }: {
   onClose: () => void
@@ -628,74 +593,128 @@ export function AdminBroadcastManager() {
         </div>
       </div>
 
-      {/* Right: Detail + Analytics */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {selected ? (
-          <div className="mx-auto max-w-2xl space-y-6">
-            <div>
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <SegmentLabels broadcast={selected} />
-                {selected.isImportant && (
-                  <span className="flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-bold text-accent">
-                    <AlertTriangle size={12} /> 重要
-                  </span>
-                )}
-                <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                  selected.status === 'sent' ? 'bg-success/10 text-success'
-                    : selected.status === 'scheduled' ? 'bg-primary/10 text-primary'
-                      : selected.status === 'recalled' ? 'bg-border text-text-secondary'
-                        : 'bg-bg text-text-secondary'
-                }`}>
-                  {selected.status === 'sent' ? '配信済み' : selected.status === 'scheduled' ? '予約中' : selected.status === 'recalled' ? '取消済み' : '下書き'}
-                </span>
-              </div>
-              <h1 className={`text-xl font-bold ${selected.status === 'recalled' ? 'text-text-secondary line-through' : 'text-text'}`}>
-                {selected.title}
-              </h1>
-              <p className="mt-1 text-xs text-text-secondary">
-                {formatDate(selected.sentAt ?? selected.scheduledAt ?? selected.createdAt)}
-              </p>
-              {selected.status === 'recalled' && selected.recalledAt && (
-                <p className="mt-0.5 text-xs text-text-secondary">取消日時: {formatDate(selected.recalledAt)}</p>
-              )}
-            </div>
-
-            {/* Action buttons */}
-            {selected.status === 'sent' && (
-              <div className="flex gap-2">
-                <button onClick={() => setRecallConfirmId(selected.id)}
-                  className="flex items-center gap-1.5 rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/5">
-                  <Undo2 size={14} /> 送信取り消し
-                </button>
-              </div>
-            )}
-
-            {selected.status === 'draft' && (
-              <div className="flex gap-2">
-                <button onClick={() => handleEditDraft(selected)}
-                  className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-bg">
-                  <Pencil size={14} /> 編集
-                </button>
-                <button onClick={() => handleDeleteDraft(selected.id)}
-                  className="flex items-center gap-1.5 rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/5">
-                  <Trash2 size={14} /> 削除
-                </button>
-              </div>
-            )}
-
-            {selected.imageUrl && <img src={selected.imageUrl} alt="" className="w-full rounded-xl" />}
-
-            <div className={`rounded-xl border border-border bg-bg-card p-4 ${selected.status === 'recalled' ? 'opacity-50' : ''}`}>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-text">{selected.body}</p>
-            </div>
-
-            {selected.status === 'sent' && (
-              <AnalyticsPanel broadcast={selected} onShowDetail={() => setShowReadDetail(true)} />
-            )}
+      {/* Right: Slack/Discord-style message feed */}
+      <div className="flex-1 overflow-y-auto">
+        {filtered.length === 0 ? (
+          <div className="flex h-full items-center justify-center">
+            <p className="text-sm text-text-secondary">配信がありません</p>
           </div>
         ) : (
-          <div className="flex h-full items-center justify-center">
-            <p className="text-sm text-text-secondary">配信を選択してください</p>
+          <div className="divide-y divide-border/30">
+            {filtered.map((bc) => {
+              const reads = DUMMY_READ_STATUSES.filter((r) => r.broadcastId === bc.id).length
+              const total = getTargetMemberCount(bc)
+              const rate = total > 0 ? Math.round((reads / total) * 100) : 0
+              const isExpanded = selectedId === bc.id
+
+              return (
+                <div
+                  key={bc.id}
+                  className={`group px-5 py-3 transition-colors hover:bg-bg/50 ${isExpanded ? 'bg-primary/[0.03]' : ''}`}
+                  onClick={() => setSelectedId(isExpanded ? null : bc.id)}
+                  role="button"
+                  tabIndex={0}
+                >
+                  {/* Message header: avatar + name + segment + timestamp */}
+                  <div className="mb-1 flex items-center gap-2">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[11px] font-bold text-primary">
+                      管
+                    </div>
+                    <span className="text-[13px] font-bold text-text">管理者</span>
+                    <SegmentLabels broadcast={bc} variant="compact" />
+                    {bc.isImportant && bc.status !== 'recalled' && (
+                      <AlertTriangle size={11} className="shrink-0 text-accent" />
+                    )}
+                    {bc.status === 'recalled' && (
+                      <span className="rounded bg-border px-1.5 py-0.5 text-[10px] font-medium text-text-secondary">取消済み</span>
+                    )}
+                    {bc.status === 'scheduled' && (
+                      <span className="flex items-center gap-0.5 text-[10px] text-primary">
+                        <Clock size={10} /> 予約
+                      </span>
+                    )}
+                    {bc.status === 'draft' && (
+                      <span className="rounded bg-bg px-1.5 py-0.5 text-[10px] font-medium text-text-secondary">下書き</span>
+                    )}
+                    <span className="ml-auto shrink-0 text-[11px] text-text-secondary">
+                      {formatShortDate(bc.sentAt ?? bc.scheduledAt ?? bc.createdAt)}
+                    </span>
+                  </div>
+
+                  {/* Title + body */}
+                  <div className={`pl-9 ${bc.status === 'recalled' ? 'opacity-40' : ''}`}>
+                    <p className={`text-[13px] font-semibold leading-snug ${bc.status === 'recalled' ? 'line-through text-text-secondary' : 'text-text'}`}>
+                      {bc.title}
+                    </p>
+                    <p className={`mt-0.5 text-xs leading-relaxed text-text-secondary ${isExpanded ? 'whitespace-pre-wrap' : 'line-clamp-2'}`}>
+                      {bc.body}
+                    </p>
+
+                    {bc.imageUrl && isExpanded && (
+                      <img src={bc.imageUrl} alt="" className="mt-2 max-w-sm rounded-lg" />
+                    )}
+
+                    {/* Inline read rate bar (sent only) */}
+                    {bc.status === 'sent' && (
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <div className="h-1 w-24 overflow-hidden rounded-full bg-border">
+                          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${rate}%` }} />
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setSelectedId(bc.id); setShowReadDetail(true) }}
+                          className={`text-[10px] font-bold hover:underline ${rate === 100 ? 'text-success' : rate >= 50 ? 'text-primary' : 'text-danger'}`}
+                        >
+                          既読 {rate}% ({reads}/{total})
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Expanded: actions + analytics */}
+                    {isExpanded && (
+                      <div className="mt-3 space-y-3">
+                        {bc.status === 'sent' && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setShowReadDetail(true) }}
+                              className="flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[11px] font-medium text-text-secondary hover:bg-bg"
+                            >
+                              <Eye size={12} /> 既読詳細
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setRecallConfirmId(bc.id) }}
+                              className="flex items-center gap-1 rounded-md border border-danger/30 px-2.5 py-1 text-[11px] font-medium text-danger hover:bg-danger/5"
+                            >
+                              <Undo2 size={12} /> 取り消し
+                            </button>
+                          </div>
+                        )}
+
+                        {bc.status === 'draft' && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleEditDraft(bc) }}
+                              className="flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-[11px] font-medium text-text-secondary hover:bg-bg"
+                            >
+                              <Pencil size={12} /> 編集
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDeleteDraft(bc.id) }}
+                              className="flex items-center gap-1 rounded-md border border-danger/30 px-2.5 py-1 text-[11px] font-medium text-danger hover:bg-danger/5"
+                            >
+                              <Trash2 size={12} /> 削除
+                            </button>
+                          </div>
+                        )}
+
+                        {bc.status === 'recalled' && bc.recalledAt && (
+                          <p className="text-[10px] text-text-secondary">取消日時: {formatDate(bc.recalledAt)}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
