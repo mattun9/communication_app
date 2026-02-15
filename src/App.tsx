@@ -7,6 +7,7 @@ import { AdminLayout } from './components/AdminLayout'
 
 // Member pages
 import { MemberTalkPage } from './pages/member/TalkPage'
+import { MemberNewsPage } from './pages/member/NewsPage'
 import { MemberCalendarPage } from './pages/member/CalendarPage'
 import { MemberMyPage } from './pages/member/MyPage'
 
@@ -26,6 +27,7 @@ export default function App() {
           {/* 会員画面（モバイル） */}
           <Route path="/member" element={<MemberLayout />}>
             <Route path="talk" element={<MemberTalkPage />} />
+            <Route path="news" element={<MemberNewsPage />} />
             <Route path="calendar" element={<MemberCalendarPage />} />
             <Route path="mypage" element={<MemberMyPage />} />
             <Route index element={<Navigate to="talk" replace />} />

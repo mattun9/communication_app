@@ -1,10 +1,11 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { MessageCircle, Calendar, User } from 'lucide-react'
+import { MessageCircle, Calendar, User, Bell } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { DUMMY_BROADCASTS, DUMMY_READ_STATUSES, DUMMY_MESSAGES } from '../lib/dummyData'
 
 const navItems = [
   { path: '/member/talk', label: 'トーク', icon: MessageCircle, badgeKey: 'talk' },
+  { path: '/member/news', label: 'お知らせ', icon: Bell, badgeKey: 'news' },
   { path: '/member/calendar', label: 'カレンダー', icon: Calendar, badgeKey: null },
   { path: '/member/mypage', label: 'マイページ', icon: User, badgeKey: null },
 ] as const
@@ -14,22 +15,25 @@ export function MemberLayout() {
   const navigate = useNavigate()
   const { user } = useAuth()
 
-  // 未読バッジ計算
-  const getTalkBadge = (): number => {
-    if (!user) return 0
-    // 未読の配信数
-    const userReads = new Set(DUMMY_READ_STATUSES.filter((r) => r.userId === user.uid).map((r) => r.broadcastId))
-    const unreadBroadcasts = DUMMY_BROADCASTS.filter(
-      (bc) =>
-        bc.status === 'sent' &&
-        !userReads.has(bc.id) &&
-        (bc.targetType === 'all' || (bc.targetType === 'class' && bc.targetClassIds.some((id) => user.classIds.includes(id))))
-    ).length
-    // 未読の管理者からのメッセージ
-    const unreadMessages = DUMMY_MESSAGES.filter(
-      (m) => m.recipientUid === user.uid && m.senderRole === 'admin' && !m.isReadByRecipient && !m.isDeleted
-    ).length
-    return unreadBroadcasts + unreadMessages
+  const getBadgeCount = (key: string | null): number => {
+    if (!user || !key) return 0
+    if (key === 'talk') {
+      // トーク: 未読の管理者からのメッセージのみ
+      return DUMMY_MESSAGES.filter(
+        (m) => m.recipientUid === user.uid && m.senderRole === 'admin' && !m.isReadByRecipient && !m.isDeleted
+      ).length
+    }
+    if (key === 'news') {
+      // お知らせ: 未読の配信数
+      const userReads = new Set(DUMMY_READ_STATUSES.filter((r) => r.userId === user.uid).map((r) => r.broadcastId))
+      return DUMMY_BROADCASTS.filter(
+        (bc) =>
+          bc.status === 'sent' &&
+          !userReads.has(bc.id) &&
+          (bc.targetType === 'all' || (bc.targetType === 'class' && bc.targetClassIds.some((id) => user.classIds.includes(id))))
+      ).length
+    }
+    return 0
   }
 
   return (
@@ -41,7 +45,7 @@ export function MemberLayout() {
         <div className="mx-auto flex h-14 max-w-lg items-center justify-around">
           {navItems.map(({ path, label, icon: Icon, badgeKey }) => {
             const isActive = location.pathname.startsWith(path)
-            const badgeCount = badgeKey === 'talk' ? getTalkBadge() : 0
+            const badgeCount = getBadgeCount(badgeKey)
             return (
               <button
                 key={path}
