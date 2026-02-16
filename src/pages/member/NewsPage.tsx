@@ -148,7 +148,7 @@ export function MemberNewsPage() {
 
                     {/* Body */}
                     <div className="mt-1.5">
-                      <p className={`whitespace-pre-wrap text-[13px] leading-relaxed text-text-secondary ${isExpanded ? '' : 'line-clamp-3'}`}>
+                      <p className={`whitespace-pre-wrap text-[13px] leading-relaxed text-text-secondary ${isExpanded ? '' : 'line-clamp-6'}`}>
                         {bc.body}
                       </p>
                       <button
