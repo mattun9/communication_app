@@ -10,7 +10,8 @@ import {
   ArrowRightLeft,
   LogOut,
 } from 'lucide-react'
-import { DUMMY_MESSAGES, DUMMY_BROADCASTS, DUMMY_READ_STATUSES, getTargetMemberCount } from '../lib/dummyData'
+import { DUMMY_BROADCASTS, DUMMY_READ_STATUSES, getTargetMemberCount } from '../lib/dummyData'
+import { MessageProvider, useMessages } from '../contexts/MessageContext'
 
 const navItems = [
   { path: '/admin/dashboard', label: 'ダッシュボード', icon: LayoutDashboard, badgeKey: null },
@@ -21,27 +22,26 @@ const navItems = [
   { path: '/admin/classrooms', label: '教室管理', icon: School, badgeKey: null },
 ] as const
 
-function getBadgeCount(key: string | null): number {
-  if (key === 'chat') {
-    // 会員からの未読メッセージ数
-    return DUMMY_MESSAGES.filter((m) => m.senderRole === 'member' && !m.isReadByRecipient && !m.isDeleted).length
-  }
-  if (key === 'broadcast') {
-    // 未読者がいる配信数
-    return DUMMY_BROADCASTS.filter((bc) => {
-      if (bc.status !== 'sent') return false
-      const reads = DUMMY_READ_STATUSES.filter((r) => r.broadcastId === bc.id).length
-      const total = getTargetMemberCount(bc)
-      return reads < total
-    }).length
-  }
-  return 0
+function getBroadcastBadgeCount(): number {
+  return DUMMY_BROADCASTS.filter((bc) => {
+    if (bc.status !== 'sent') return false
+    const reads = DUMMY_READ_STATUSES.filter((r) => r.broadcastId === bc.id).length
+    const total = getTargetMemberCount(bc)
+    return reads < total
+  }).length
 }
 
-export function AdminLayout() {
+function AdminLayoutInner() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, switchRole } = useAuth()
+  const { getUnreadCountFromMembers } = useMessages()
+
+  const getBadgeCount = (key: string | null): number => {
+    if (key === 'chat') return getUnreadCountFromMembers()
+    if (key === 'broadcast') return getBroadcastBadgeCount()
+    return 0
+  }
 
   return (
     <div className="flex h-screen bg-bg">
@@ -107,5 +107,13 @@ export function AdminLayout() {
         <Outlet />
       </main>
     </div>
+  )
+}
+
+export function AdminLayout() {
+  return (
+    <MessageProvider>
+      <AdminLayoutInner />
+    </MessageProvider>
   )
 }
