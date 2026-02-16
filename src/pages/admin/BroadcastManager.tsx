@@ -36,12 +36,10 @@ function formatDate(date: Date): string {
 
 function formatShortDate(date: Date): string {
   const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-  if (days === 0) return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
-  if (days === 1) return '昨日'
-  if (days < 7) return `${days}日前`
-  return `${date.getMonth() + 1}/${date.getDate()}`
+  const isToday = date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate()
+  const time = `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
+  if (isToday) return time
+  return `${date.getMonth() + 1}/${date.getDate()} ${time}`
 }
 
 // --- 未読者詳細モーダル ---
