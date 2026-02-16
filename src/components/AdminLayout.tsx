@@ -10,26 +10,16 @@ import {
   ArrowRightLeft,
   LogOut,
 } from 'lucide-react'
-import { DUMMY_BROADCASTS, DUMMY_READ_STATUSES, getTargetMemberCount } from '../lib/dummyData'
 import { MessageProvider, useMessages } from '../contexts/MessageContext'
 
 const navItems = [
   { path: '/admin/dashboard', label: 'ダッシュボード', icon: LayoutDashboard, badgeKey: null },
   { path: '/admin/inbox', label: 'チャット', icon: MessageCircle, badgeKey: 'chat' },
-  { path: '/admin/broadcasts', label: '配信管理', icon: Megaphone, badgeKey: 'broadcast' },
+  { path: '/admin/broadcasts', label: '配信管理', icon: Megaphone, badgeKey: null },
   { path: '/admin/schedule', label: 'スケジュール', icon: CalendarDays, badgeKey: null },
   { path: '/admin/members', label: 'メンバー', icon: Users, badgeKey: null },
   { path: '/admin/classrooms', label: '教室管理', icon: School, badgeKey: null },
 ] as const
-
-function getBroadcastBadgeCount(): number {
-  return DUMMY_BROADCASTS.filter((bc) => {
-    if (bc.status !== 'sent') return false
-    const reads = DUMMY_READ_STATUSES.filter((r) => r.broadcastId === bc.id).length
-    const total = getTargetMemberCount(bc)
-    return reads < total
-  }).length
-}
 
 function AdminLayoutInner() {
   const location = useLocation()
@@ -39,7 +29,6 @@ function AdminLayoutInner() {
 
   const getBadgeCount = (key: string | null): number => {
     if (key === 'chat') return getUnreadCountFromMembers()
-    if (key === 'broadcast') return getBroadcastBadgeCount()
     return 0
   }
 
