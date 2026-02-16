@@ -29,8 +29,21 @@ import {
   getMemberClassrooms,
 } from '../../lib/dummyData'
 
-function formatTime(date: Date): string {
-  return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
+const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
+
+function formatLINETime(date: Date): string {
+  const h = date.getHours()
+  const m = String(date.getMinutes()).padStart(2, '0')
+  const period = h < 12 ? '午前' : '午後'
+  return `${period} ${h % 12}:${m}`
+}
+
+function formatDateSeparator(date: Date): string {
+  return `${date.getMonth() + 1}.${date.getDate()}(${WEEKDAYS[date.getDay()]})`
+}
+
+function isSameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
 
 export function AdminInbox() {
@@ -337,37 +350,67 @@ export function AdminInbox() {
 
             {/* Messages area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {chatMessages.map((msg) => {
+              {chatMessages.map((msg, index) => {
                 const isAdmin = msg.senderRole === 'admin'
+                const prevMsg = index > 0 ? chatMessages[index - 1] : null
+                const showDate = !prevMsg || !isSameDay(prevMsg.createdAt, msg.createdAt)
+
+                const dateSeparator = showDate ? (
+                  <div className="flex justify-center py-3">
+                    <span className="rounded-full bg-bg px-3 py-1 text-[11px] font-medium text-text-secondary">
+                      {formatDateSeparator(msg.createdAt)}
+                    </span>
+                  </div>
+                ) : null
 
                 // System messages
                 if (msg.type === 'system') {
                   return (
-                    <div key={msg.id} className="flex justify-center">
-                      <span className="rounded-full bg-bg px-3 py-1 text-xs text-text-secondary">
-                        {msg.text}
-                      </span>
+                    <div key={msg.id}>
+                      {dateSeparator}
+                      <div className="flex justify-center">
+                        <span className="rounded-full bg-bg px-3 py-1 text-xs text-text-secondary">
+                          {msg.text}
+                        </span>
+                      </div>
                     </div>
                   )
                 }
 
                 // Absence messages
                 if (msg.type === 'absence') {
-                  return <AbsenceCard key={msg.id} message={msg} />
+                  return (
+                    <div key={msg.id}>
+                      {dateSeparator}
+                      <AbsenceCard message={msg} />
+                    </div>
+                  )
                 }
 
                 // Deleted messages
                 if (msg.isDeleted) {
                   return (
-                    <div
-                      key={msg.id}
-                      className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div className="flex items-center gap-1.5 rounded-2xl bg-bg px-4 py-2.5">
-                        <Ban size={14} className="text-text-secondary" />
-                        <p className="text-sm italic text-text-secondary">
-                          このメッセージは取り消されました
-                        </p>
+                    <div key={msg.id}>
+                      {dateSeparator}
+                      <div className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}>
+                        <div className="flex items-end gap-1.5">
+                          {isAdmin && (
+                            <span className="shrink-0 pb-0.5 text-[10px] text-text-secondary">
+                              {formatLINETime(msg.createdAt)}
+                            </span>
+                          )}
+                          <div className="flex items-center gap-1.5 rounded-2xl bg-bg px-4 py-2.5">
+                            <Ban size={14} className="text-text-secondary" />
+                            <p className="text-sm italic text-text-secondary">
+                              このメッセージは取り消されました
+                            </p>
+                          </div>
+                          {!isAdmin && (
+                            <span className="shrink-0 pb-0.5 text-[10px] text-text-secondary">
+                              {formatLINETime(msg.createdAt)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )
@@ -376,7 +419,9 @@ export function AdminInbox() {
                 // Scheduled messages
                 if (msg.isScheduled) {
                   return (
-                    <div key={msg.id} className="flex justify-end">
+                    <div key={msg.id}>
+                    {dateSeparator}
+                    <div className="flex justify-end">
                       <div
                         className="group relative max-w-[70%] rounded-2xl rounded-tr-sm border-2 border-dashed border-primary/40 bg-primary/5 px-4 py-2.5"
                         onContextMenu={(e) => handleContextMenu(e, msg.id)}
@@ -386,7 +431,7 @@ export function AdminInbox() {
                           <span className="text-[10px] font-medium text-primary">
                             予約済み:{' '}
                             {msg.scheduledAt
-                              ? `${msg.scheduledAt.getMonth() + 1}/${msg.scheduledAt.getDate()} ${formatTime(msg.scheduledAt)}`
+                              ? `${msg.scheduledAt.getMonth() + 1}/${msg.scheduledAt.getDate()} ${formatLINETime(msg.scheduledAt)}`
                               : ''}
                           </span>
                         </div>
@@ -441,24 +486,37 @@ export function AdminInbox() {
                           </button>
                         </div>
                         <p className="mt-1 text-[10px] text-text-secondary">
-                          {formatTime(msg.createdAt)}
+                          {formatLINETime(msg.createdAt)}
                         </p>
                       </div>
+                    </div>
                     </div>
                   )
                 }
 
-                // Normal messages
+                // Normal messages (LINE-style: time outside bubble)
                 return (
+                  <div key={msg.id}>
+                  {dateSeparator}
                   <div
-                    key={msg.id}
                     className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div>
+                    <div className="flex items-end gap-1.5">
+                      {/* Admin message: 既読+time on LEFT of bubble */}
+                      {isAdmin && (
+                        <div className="flex shrink-0 flex-col items-end pb-0.5">
+                          {msg.isReadByRecipient && (
+                            <span className="text-[10px] leading-tight text-primary/70">既読</span>
+                          )}
+                          <span className="text-[10px] leading-tight text-text-secondary">
+                            {formatLINETime(msg.createdAt)}
+                          </span>
+                        </div>
+                      )}
                       <div
                         className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
                           isAdmin
-                            ? 'ml-auto rounded-tr-sm bg-primary text-white'
+                            ? 'rounded-tr-sm bg-primary text-white'
                             : 'rounded-tl-sm bg-bubble-other text-text'
                         }`}
                         onContextMenu={(e) => handleContextMenu(e, msg.id)}
@@ -475,21 +533,15 @@ export function AdminInbox() {
                             variant={isAdmin ? 'dark' : 'light'}
                           />
                         )}
-                        <p
-                          className={`mt-1 text-[10px] ${
-                            isAdmin ? 'text-white/60' : 'text-text-secondary'
-                          }`}
-                        >
-                          {formatTime(msg.createdAt)}
-                        </p>
                       </div>
-                      {/* 管理者メッセージに控えめな既読バッジ (LINE風) */}
-                      {isAdmin && (
-                        <p className={`mt-0.5 text-right text-[10px] ${msg.isReadByRecipient ? 'text-primary/70' : 'text-transparent'}`}>
-                          {msg.isReadByRecipient ? '既読' : ''}
-                        </p>
+                      {/* Member message: time on RIGHT of bubble */}
+                      {!isAdmin && (
+                        <span className="shrink-0 pb-0.5 text-[10px] text-text-secondary">
+                          {formatLINETime(msg.createdAt)}
+                        </span>
                       )}
                     </div>
+                  </div>
                   </div>
                 )
               })}

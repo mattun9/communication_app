@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback, Fragment } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { BroadcastCard } from '../../components/BroadcastCard'
 import { BroadcastDetailModal } from '../../components/BroadcastDetailModal'
@@ -16,14 +16,21 @@ import {
 } from '../../lib/dummyData'
 import type { Message, Broadcast } from '../../types'
 
-function formatTime(date: Date): string {
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-  if (days === 0) return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
-  if (days === 1) return '昨日'
-  if (days < 7) return `${days}日前`
-  return `${date.getMonth() + 1}/${date.getDate()}`
+const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
+
+function formatLINETime(date: Date): string {
+  const h = date.getHours()
+  const m = String(date.getMinutes()).padStart(2, '0')
+  const period = h < 12 ? '午前' : '午後'
+  return `${period} ${h % 12}:${m}`
+}
+
+function formatDateSeparator(date: Date): string {
+  return `${date.getMonth() + 1}.${date.getDate()}(${WEEKDAYS[date.getDay()]})`
+}
+
+function isSameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
 
 // タイムライン上の統合アイテム
@@ -91,34 +98,49 @@ function ChatBubble({
   // Deleted message rendering
   if (message.isDeleted) {
     return (
-      <div className={`flex px-4 py-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
-        <div className={`flex max-w-[75%] flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+      <div className={`flex px-4 py-0.5 ${isMine ? 'justify-end' : 'justify-start'}`}>
+        <div className="flex items-end gap-1.5">
+          {isMine && (
+            <span className="shrink-0 pb-0.5 text-[10px] text-text-secondary">
+              {formatLINETime(message.createdAt)}
+            </span>
+          )}
           <div className="flex items-center gap-1.5 rounded-2xl bg-bg px-4 py-2.5">
             <Ban size={14} className="text-text-secondary" />
             <p className="text-sm italic text-text-secondary">
               このメッセージは取り消されました
             </p>
           </div>
-          <span className="mt-0.5 text-[10px] text-text-secondary">
-            {formatTime(message.createdAt)}
-          </span>
+          {!isMine && (
+            <span className="shrink-0 pb-0.5 text-[10px] text-text-secondary">
+              {formatLINETime(message.createdAt)}
+            </span>
+          )}
         </div>
       </div>
     )
   }
 
-  // My message bubble
+  // My message bubble (LINE-style: 既読+時刻 on left)
   if (isMine) {
     return (
       <div
-        className="flex justify-end px-4 py-1"
+        className="flex justify-end px-4 py-0.5"
         onContextMenu={handleContextMenu}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchMove={handleTouchMove}
       >
-        <div className="flex max-w-[75%] flex-col items-end">
-          <div className="rounded-2xl rounded-tr-sm bg-bubble-mine px-4 py-2.5">
+        <div className="flex items-end gap-1.5">
+          <div className="flex shrink-0 flex-col items-end pb-0.5">
+            {message.isReadByRecipient && (
+              <span className="text-[10px] leading-tight text-primary/70">既読</span>
+            )}
+            <span className="text-[10px] leading-tight text-text-secondary">
+              {formatLINETime(message.createdAt)}
+            </span>
+          </div>
+          <div className="max-w-[70%] rounded-2xl rounded-tr-sm bg-bubble-mine px-4 py-2.5">
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-white">
               {message.text}
             </p>
@@ -132,18 +154,15 @@ function ChatBubble({
               />
             )}
           </div>
-          <span className="mt-0.5 text-[10px] text-text-secondary">
-            {formatTime(message.createdAt)}
-          </span>
         </div>
       </div>
     )
   }
 
-  // Other's message bubble
+  // Other's message bubble (LINE-style: 時刻 on right)
   return (
     <div
-      className="flex justify-start px-4 py-1"
+      className="flex justify-start px-4 py-0.5"
       onContextMenu={handleContextMenu}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
@@ -157,23 +176,25 @@ function ChatBubble({
           <span className="mb-0.5 block text-[11px] font-semibold text-text-secondary">
             {message.senderName}
           </span>
-          <div className="rounded-2xl rounded-tl-sm bg-bubble-other px-4 py-2.5">
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-text">
-              {message.text}
-            </p>
-            {message.attachmentUrl && message.attachmentType && (
-              <AttachmentPreview
-                url={message.attachmentUrl}
-                type={message.attachmentType}
-                fileName={message.attachmentName}
-                onImageClick={() => onImageClick(message.attachmentUrl!)}
-                variant="light"
-              />
-            )}
+          <div className="flex items-end gap-1.5">
+            <div className="min-w-0 rounded-2xl rounded-tl-sm bg-bubble-other px-4 py-2.5">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-text">
+                {message.text}
+              </p>
+              {message.attachmentUrl && message.attachmentType && (
+                <AttachmentPreview
+                  url={message.attachmentUrl}
+                  type={message.attachmentType}
+                  fileName={message.attachmentName}
+                  onImageClick={() => onImageClick(message.attachmentUrl!)}
+                  variant="light"
+                />
+              )}
+            </div>
+            <span className="shrink-0 pb-0.5 text-[10px] text-text-secondary">
+              {formatLINETime(message.createdAt)}
+            </span>
           </div>
-          <span className="mt-0.5 block text-[10px] text-text-secondary">
-            {formatTime(message.createdAt)}
-          </span>
         </div>
       </div>
     </div>
@@ -333,38 +354,46 @@ export function MemberTalkPage() {
 
       {/* Timeline */}
       <div className="min-h-0 flex-1 overflow-y-auto py-2">
-        {timeline.map((item) => {
-          if (item.kind === 'broadcast') {
-            const broadcast = item.data
-            if (broadcast.status === 'recalled') {
-              return (
-                <div key={broadcast.id} className="px-4 py-2">
-                  <div className="flex items-center gap-2 rounded-2xl border border-border bg-bg px-4 py-3">
-                    <Ban size={14} className="text-text-secondary" />
-                    <span className="text-sm italic text-text-secondary">
-                      この配信は取り消されました
-                    </span>
-                  </div>
-                </div>
-              )
-            }
-            return (
-              <BroadcastCard
-                key={broadcast.id}
-                broadcast={broadcast}
-                isRead={readBroadcasts.has(broadcast.id)}
-                onOpen={handleOpenBroadcast}
-              />
-            )
-          }
+        {timeline.map((item, index) => {
+          const prevTime = index > 0 ? timeline[index - 1].time : null
+          const showDate = !prevTime || !isSameDay(prevTime, item.time)
+          const key = item.kind === 'broadcast' ? `bc-${item.data.id}` : `msg-${item.data.id}`
+
           return (
-            <ChatBubble
-              key={item.data.id}
-              message={item.data}
-              isMine={item.data.senderUid === user?.uid}
-              onLongPress={handleContextMenu}
-              onImageClick={handleImageClick}
-            />
+            <Fragment key={key}>
+              {showDate && (
+                <div className="flex justify-center py-3">
+                  <span className="rounded-full bg-bg px-3 py-1 text-[11px] font-medium text-text-secondary">
+                    {formatDateSeparator(item.time)}
+                  </span>
+                </div>
+              )}
+              {item.kind === 'broadcast' ? (
+                item.data.status === 'recalled' ? (
+                  <div className="px-4 py-2">
+                    <div className="flex items-center gap-2 rounded-2xl border border-border bg-bg px-4 py-3">
+                      <Ban size={14} className="text-text-secondary" />
+                      <span className="text-sm italic text-text-secondary">
+                        この配信は取り消されました
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <BroadcastCard
+                    broadcast={item.data}
+                    isRead={readBroadcasts.has(item.data.id)}
+                    onOpen={handleOpenBroadcast}
+                  />
+                )
+              ) : (
+                <ChatBubble
+                  message={item.data}
+                  isMine={item.data.senderUid === user?.uid}
+                  onLongPress={handleContextMenu}
+                  onImageClick={handleImageClick}
+                />
+              )}
+            </Fragment>
           )
         })}
         <div ref={bottomRef} />
