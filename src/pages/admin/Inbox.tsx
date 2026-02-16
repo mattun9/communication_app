@@ -28,6 +28,7 @@ import {
   getClassLabel,
   getMemberClassrooms,
 } from '../../lib/dummyData'
+import { useMessages } from '../../contexts/MessageContext'
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
 
@@ -51,7 +52,7 @@ export function AdminInbox() {
   const [selectedMember, setSelectedMember] = useState<
     (typeof DUMMY_MEMBERS)[number] | null
   >(null)
-  const [messages, setMessages] = useState<Message[]>(DUMMY_MESSAGES)
+  const { messages, markMemberMessagesAsRead, addMessage, unsendMessage, updateMessage, deleteMessage } = useMessages()
 
   // Handle ?member=uid from MemberManagement navigation
   useEffect(() => {
@@ -72,14 +73,8 @@ export function AdminInbox() {
   // メンバー選択時: そのメンバーからの未読メッセージを既読にする
   useEffect(() => {
     if (!selectedMember) return
-    setMessages((prev) =>
-      prev.map((m) =>
-        m.senderUid === selectedMember.uid && m.senderRole === 'member' && !m.isReadByRecipient
-          ? { ...m, isReadByRecipient: true, readAt: new Date() }
-          : m
-      )
-    )
-  }, [selectedMember]) // eslint-disable-line react-hooks/exhaustive-deps
+    markMemberMessagesAsRead(selectedMember.uid)
+  }, [selectedMember, markMemberMessagesAsRead])
   const [inputText, setInputText] = useState('')
   const [filter, setFilter] = useState<'all' | 'unread' | 'absence'>('all')
 
@@ -192,7 +187,7 @@ export function AdminInbox() {
       }),
     }
 
-    setMessages((prev) => [...prev, newMsg])
+    addMessage(newMsg)
     setInputText('')
     setPendingAttachment(null)
     setScheduledTime('')
@@ -200,11 +195,7 @@ export function AdminInbox() {
   }
 
   const handleUnsend = (messageId: string) => {
-    setMessages((prev) =>
-      prev.map((m) =>
-        m.id === messageId ? { ...m, isDeleted: true, deletedAt: new Date() } : m
-      )
-    )
+    unsendMessage(messageId)
   }
 
   const handleCopy = (text: string) => {
@@ -217,7 +208,7 @@ export function AdminInbox() {
   }
 
   const handleDeleteScheduled = (msgId: string) => {
-    setMessages((prev) => prev.filter((m) => m.id !== msgId))
+    deleteMessage(msgId)
   }
 
   const handleEditScheduled = (msgId: string) => {
@@ -225,9 +216,7 @@ export function AdminInbox() {
   }
 
   const handleSaveEdit = (msgId: string, newText: string) => {
-    setMessages((prev) =>
-      prev.map((m) => (m.id === msgId ? { ...m, text: newText } : m))
-    )
+    updateMessage(msgId, { text: newText })
     setEditingMessage(null)
   }
 
