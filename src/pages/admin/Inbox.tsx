@@ -501,7 +501,7 @@ export function AdminInbox() {
                   <div
                     className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div className="flex items-end gap-1.5">
+                    <div className="flex max-w-[75%] items-end gap-1.5">
                       {/* Admin message: 既読+time on LEFT of bubble */}
                       {isAdmin && (
                         <div className="flex shrink-0 flex-col items-end pb-0.5">
@@ -514,7 +514,7 @@ export function AdminInbox() {
                         </div>
                       )}
                       <div
-                        className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
+                        className={`min-w-0 rounded-2xl px-4 py-2.5 ${
                           isAdmin
                             ? 'rounded-tr-sm bg-primary text-white'
                             : 'rounded-tl-sm bg-bubble-other text-text'

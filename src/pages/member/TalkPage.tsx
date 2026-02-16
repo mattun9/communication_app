@@ -131,7 +131,7 @@ function ChatBubble({
         onTouchEnd={handleTouchEnd}
         onTouchMove={handleTouchMove}
       >
-        <div className="flex items-end gap-1.5">
+        <div className="flex max-w-[75%] items-end gap-1.5">
           <div className="flex shrink-0 flex-col items-end pb-0.5">
             {message.isReadByRecipient && (
               <span className="text-[10px] leading-tight text-primary/70">既読</span>
@@ -140,7 +140,7 @@ function ChatBubble({
               {formatLINETime(message.createdAt)}
             </span>
           </div>
-          <div className="max-w-[70%] rounded-2xl rounded-tr-sm bg-bubble-mine px-4 py-2.5">
+          <div className="min-w-0 rounded-2xl rounded-tr-sm bg-bubble-mine px-4 py-2.5">
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-white">
               {message.text}
             </p>
