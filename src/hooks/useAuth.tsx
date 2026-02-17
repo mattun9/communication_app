@@ -1,40 +1,71 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 import type { User } from '../types'
+import { DUMMY_MEMBERS } from '../lib/dummyData'
 
 interface AuthContextType {
   user: User | null
   isAdmin: boolean
   switchRole: (role: 'admin' | 'member') => void
+  updateUser: (updates: Partial<User>) => void
+  switchChild: (uid: string) => void
+  logout: () => void
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isAdmin: false,
   switchRole: () => {},
+  updateUser: () => {},
+  switchChild: () => {},
+  logout: () => {},
 })
 
-// MVP: ダミーユーザーでロール切り替え可能（Firebase接続後に置き換え）
-const createDummyUser = (role: 'admin' | 'member'): User => ({
-  uid: role === 'admin' ? 'admin-001' : 'member-001',
-  name: role === 'admin' ? '田中コーチ' : '山田 太郎',
-  nameKana: role === 'admin' ? 'タナカ コーチ' : 'ヤマダ タロウ',
-  role,
+const ADMIN_USER: User = {
+  uid: 'admin-001',
+  name: '田中コーチ',
+  nameKana: 'タナカ コーチ',
+  role: 'admin',
   classId: 'class-a',
   classIds: ['class-a'],
-  email: role === 'admin' ? 'tanaka@example.com' : 'yamada@example.com',
+  email: 'tanaka@example.com',
   createdAt: new Date(),
-})
+}
+
+function getDefaultMember(): User {
+  const member = DUMMY_MEMBERS.find(m => m.uid === 'member-001')
+  if (member) return { ...member }
+  return { uid: 'member-001', name: '山田 太郎', nameKana: 'ヤマダ タロウ', role: 'member', classId: 'class-a', classIds: ['class-a'], email: 'yamada@example.com', createdAt: new Date() }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [role, setRole] = useState<'admin' | 'member'>('member')
-  const user = createDummyUser(role)
+  const [user, setUser] = useState<User>(getDefaultMember)
+
+  const switchRole = useCallback((newRole: 'admin' | 'member') => {
+    setUser(newRole === 'admin' ? { ...ADMIN_USER } : getDefaultMember())
+  }, [])
+
+  const updateUser = useCallback((updates: Partial<User>) => {
+    setUser(prev => ({ ...prev, ...updates }))
+  }, [])
+
+  const switchChild = useCallback((uid: string) => {
+    const sibling = DUMMY_MEMBERS.find(m => m.uid === uid)
+    if (sibling) setUser({ ...sibling })
+  }, [])
+
+  const logout = useCallback(() => {
+    setUser(getDefaultMember())
+  }, [])
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        isAdmin: role === 'admin',
-        switchRole: setRole,
+        isAdmin: user.role === 'admin',
+        switchRole,
+        updateUser,
+        switchChild,
+        logout,
       }}
     >
       {children}

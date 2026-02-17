@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -10,6 +11,10 @@ import {
   ShoppingBag,
   ArrowRightLeft,
 } from 'lucide-react'
+import { getMemberClassrooms } from '../../lib/dummyData'
+import { ProfileEditSheet } from '../../components/ProfileEditSheet'
+import { NotificationSettingsSheet } from '../../components/NotificationSettingsSheet'
+import { AccountManagementSheet } from '../../components/AccountManagementSheet'
 
 interface MenuItemProps {
   icon: React.ReactNode
@@ -35,10 +40,13 @@ function MenuItem({ icon, label, onClick, danger, right }: MenuItemProps) {
 }
 
 export function MemberMyPage() {
-  const { user, isAdmin, switchRole } = useAuth()
+  const { user, isAdmin, switchRole, logout } = useAuth()
   const navigate = useNavigate()
+  const [activeSheet, setActiveSheet] = useState<'profile' | 'notification' | 'account' | null>(null)
 
   if (!user) return null
+
+  const classrooms = getMemberClassrooms(user.uid)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -49,16 +57,29 @@ export function MemberMyPage() {
       {/* Profile card */}
       <div className="border-b border-border p-4">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-lg font-bold text-white">
-            {user.name.charAt(0)}
-          </div>
+          {user.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt={user.name}
+              className="h-14 w-14 rounded-full object-cover"
+            />
+          ) : (
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-lg font-bold text-white">
+              {user.name.charAt(0)}
+            </div>
+          )}
           <div>
             <h2 className="text-base font-bold text-text">{user.name}</h2>
             <p className="text-xs text-text-secondary">{user.email}</p>
-            <div className="mt-1 flex gap-2">
-              <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary">
-                Aクラス
-              </span>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {classrooms.map((c) => (
+                <span
+                  key={c.id}
+                  className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary"
+                >
+                  {c.name}
+                </span>
+              ))}
               <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${isAdmin ? 'bg-accent/10 text-accent' : 'bg-bg text-text-secondary'}`}>
                 {isAdmin ? '管理者' : '会員'}
               </span>
@@ -90,9 +111,21 @@ export function MemberMyPage() {
         </div>
 
         <div className="border-b border-border">
-          <MenuItem icon={<User size={20} className="text-text-secondary" />} label="プロフィール編集" />
-          <MenuItem icon={<Bell size={20} className="text-text-secondary" />} label="通知設定" />
-          <MenuItem icon={<Shield size={20} className="text-text-secondary" />} label="アカウント管理" />
+          <MenuItem
+            icon={<User size={20} className="text-text-secondary" />}
+            label="プロフィール編集"
+            onClick={() => setActiveSheet('profile')}
+          />
+          <MenuItem
+            icon={<Bell size={20} className="text-text-secondary" />}
+            label="通知設定"
+            onClick={() => setActiveSheet('notification')}
+          />
+          <MenuItem
+            icon={<Shield size={20} className="text-text-secondary" />}
+            label="アカウント管理"
+            onClick={() => setActiveSheet('account')}
+          />
         </div>
 
         <div className="border-b border-border">
@@ -101,13 +134,32 @@ export function MemberMyPage() {
 
         <div className="border-b border-border">
           <MenuItem icon={<HelpCircle size={20} className="text-text-secondary" />} label="ヘルプ・お問い合わせ" />
-          <MenuItem icon={<LogOut size={20} className="text-danger" />} label="ログアウト" danger />
+          <MenuItem
+            icon={<LogOut size={20} className="text-danger" />}
+            label="ログアウト"
+            danger
+            onClick={() => {
+              logout()
+              navigate('/member/talk')
+            }}
+          />
         </div>
 
         <div className="py-4 text-center">
           <p className="text-xs text-text-secondary">STARTUS v1.0.0</p>
         </div>
       </div>
+
+      {/* Bottom sheet modals */}
+      {activeSheet === 'profile' && (
+        <ProfileEditSheet onClose={() => setActiveSheet(null)} />
+      )}
+      {activeSheet === 'notification' && (
+        <NotificationSettingsSheet onClose={() => setActiveSheet(null)} />
+      )}
+      {activeSheet === 'account' && (
+        <AccountManagementSheet onClose={() => setActiveSheet(null)} />
+      )}
     </div>
   )
 }
