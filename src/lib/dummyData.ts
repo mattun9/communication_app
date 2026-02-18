@@ -15,7 +15,7 @@ export const CLASS_OPTIONS = DUMMY_CLASSROOMS.map(c => ({ value: c.id, label: c.
 // --- ユーザー ---
 export const DUMMY_MEMBERS: User[] = [
   // class-a (12 members: member-001~005, 008~014)
-  { uid: 'member-001', name: '山田 太郎', nameKana: 'ヤマダ タロウ', role: 'member' as const, classId: 'class-a', classIds: ['class-a'], parentId: 'parent-yamada', phone: '090-1234-5678', memberNumber: 'M001', email: 'yamada.taro@example.com', createdAt: new Date('2025-04-01') },
+  { uid: 'member-001', name: '山田 太郎', nameKana: 'ヤマダ タロウ', role: 'member' as const, classId: 'class-a', classIds: ['class-a'], parentId: 'parent-yamada', phone: '090-1234-5678', memberNumber: 'M001', email: 'yamada.taro@example.com', guardians: [{ id: 'g-001', name: '山田 一郎', email: 'yamada.ichiro@example.com', relation: '父' }, { id: 'g-002', name: '山田 美香', email: 'yamada.mika@example.com', relation: '母' }], createdAt: new Date('2025-04-01') },
   { uid: 'member-002', name: '鈴木 花子', nameKana: 'スズキ ハナコ', role: 'member' as const, classId: 'class-a', classIds: ['class-a'], phone: '090-2345-6789', memberNumber: 'M002', email: 'suzuki.hanako@example.com', createdAt: new Date('2025-04-01') },
   { uid: 'member-003', name: '佐々木 一郎', nameKana: 'ササキ イチロウ', role: 'member' as const, classId: 'class-b', classIds: ['class-b'], phone: '090-3456-7890', memberNumber: 'M003', email: 'sasaki.ichiro@example.com', createdAt: new Date('2025-05-01') },
   { uid: 'member-004', name: '高橋 美咲', nameKana: 'タカハシ ミサキ', role: 'member' as const, classId: 'class-b', classIds: ['class-b'], phone: '090-4567-8901', memberNumber: 'M004', email: 'takahashi.misaki@example.com', createdAt: new Date('2025-06-01') },
@@ -71,7 +71,7 @@ export const DUMMY_MEMBERS: User[] = [
   { uid: 'member-049', name: '平野 晴', nameKana: 'ヒラノ ハル', role: 'member' as const, classId: 'class-a', classIds: ['class-a', 'class-d'], phone: '090-0303-1414', memberNumber: 'M049', email: 'hirano.haru@example.com', createdAt: new Date('2025-08-01') },
   { uid: 'member-050', name: '田村 凜', nameKana: 'タムラ リン', role: 'member' as const, classId: 'class-b', classIds: ['class-b', 'class-e'], phone: '090-1414-2525', memberNumber: 'M050', email: 'tamura.rin@example.com', createdAt: new Date('2025-08-15') },
   // 山田太郎の兄弟 (parentId で紐づけ)
-  { uid: 'member-051', name: '山田 花', nameKana: 'ヤマダ ハナ', role: 'member' as const, classId: 'class-b', classIds: ['class-b'], parentId: 'parent-yamada', phone: '090-1234-5678', memberNumber: 'M051', email: 'yamada.hana@example.com', createdAt: new Date('2025-09-01') },
+  { uid: 'member-051', name: '山田 花', nameKana: 'ヤマダ ハナ', role: 'member' as const, classId: 'class-b', classIds: ['class-b'], parentId: 'parent-yamada', phone: '090-1234-5678', memberNumber: 'M051', email: 'yamada.hana@example.com', guardians: [{ id: 'g-001', name: '山田 一郎', email: 'yamada.ichiro@example.com', relation: '父' }, { id: 'g-002', name: '山田 美香', email: 'yamada.mika@example.com', relation: '母' }], createdAt: new Date('2025-09-01') },
 ]
 
 // --- 会員-教室紐づけ ---

@@ -1,3 +1,11 @@
+// 保護者
+export interface Guardian {
+  id: string
+  name: string
+  email: string
+  relation: string
+}
+
 export interface User {
   uid: string
   name: string
@@ -10,6 +18,7 @@ export interface User {
   memberNumber?: string
   email: string
   avatarUrl?: string
+  guardians?: Guardian[]
   createdAt: Date
 }
 

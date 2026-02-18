@@ -10,9 +10,12 @@ import {
   ArrowLeft,
   AlertTriangle,
   ChevronRight,
+  UserPlus,
+  User,
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { getSiblings, getClassLabel } from '../lib/dummyData'
+import type { Guardian } from '../types'
 
 interface AccountManagementSheetProps {
   onClose: () => void
@@ -38,11 +41,13 @@ function MenuItem({ icon, label, onClick, danger }: {
   )
 }
 
+const RELATION_OPTIONS = ['父', '母', '祖父', '祖母', 'その他']
+
 export function AccountManagementSheet({ onClose }: AccountManagementSheetProps) {
   const { user, updateUser, switchChild, logout } = useAuth()
   const navigate = useNavigate()
 
-  const [subView, setSubView] = useState<'main' | 'email' | 'password' | 'deleteConfirm'>('main')
+  const [subView, setSubView] = useState<'main' | 'email' | 'password' | 'deleteConfirm' | 'guardian'>('main')
   const [submitted, setSubmitted] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
 
@@ -55,9 +60,15 @@ export function AccountManagementSheet({ onClose }: AccountManagementSheetProps)
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordError, setPasswordError] = useState('')
 
+  // Guardian add
+  const [guardianName, setGuardianName] = useState('')
+  const [guardianEmail, setGuardianEmail] = useState('')
+  const [guardianRelation, setGuardianRelation] = useState('')
+
   if (!user) return null
 
   const siblings = getSiblings(user.uid)
+  const guardians = user.guardians ?? []
 
   const showSuccess = (message: string) => {
     setSuccessMessage(message)
@@ -108,10 +119,23 @@ export function AccountManagementSheet({ onClose }: AccountManagementSheetProps)
     onClose()
   }
 
+  const handleGuardianAdd = () => {
+    if (!guardianName.trim() || !guardianEmail.trim() || !guardianRelation) return
+    const newGuardian: Guardian = {
+      id: `g-${Date.now()}`,
+      name: guardianName.trim(),
+      email: guardianEmail.trim(),
+      relation: guardianRelation,
+    }
+    updateUser({ guardians: [...guardians, newGuardian] })
+    showSuccess('保護者を追加しました')
+  }
+
   const title =
     subView === 'email' ? 'メールアドレス変更' :
     subView === 'password' ? 'パスワード変更' :
     subView === 'deleteConfirm' ? '退会' :
+    subView === 'guardian' ? '保護者を追加' :
     'アカウント管理'
 
   return (
@@ -181,6 +205,44 @@ export function AccountManagementSheet({ onClose }: AccountManagementSheetProps)
               </div>
             )}
 
+            {/* Guardian info */}
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-text-secondary">
+                保護者情報
+              </label>
+              <div className="space-y-2">
+                {guardians.map((g, i) => (
+                  <div
+                    key={g.id}
+                    className="flex items-center gap-3 rounded-xl border-2 border-border p-3"
+                  >
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-bg text-text-secondary">
+                      <User size={18} />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="text-sm font-medium text-text">
+                        {g.name}
+                        <span className="ml-1.5 text-xs text-text-secondary">（{g.relation}）</span>
+                      </p>
+                      <p className="text-xs text-text-secondary">{g.email}</p>
+                    </div>
+                    {i === 0 && (
+                      <span className="text-xs font-bold text-primary">現在</span>
+                    )}
+                  </div>
+                ))}
+                {guardians.length < 2 && (
+                  <button
+                    onClick={() => setSubView('guardian')}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-3 text-sm font-medium text-text-secondary transition-colors hover:border-primary/30 hover:text-primary"
+                  >
+                    <UserPlus size={16} />
+                    保護者を追加
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Menu items */}
             <div className="border-t border-border pt-2">
               <MenuItem icon={<Mail size={20} className="text-text-secondary" />} label="メールアドレス変更" onClick={() => setSubView('email')} />
@@ -190,6 +252,60 @@ export function AccountManagementSheet({ onClose }: AccountManagementSheetProps)
               <MenuItem icon={<Trash2 size={20} className="text-danger" />} label="退会する" onClick={() => setSubView('deleteConfirm')} danger />
               <MenuItem icon={<LogOut size={20} className="text-danger" />} label="ログアウト" onClick={handleLogout} danger />
             </div>
+          </div>
+        ) : subView === 'guardian' ? (
+          <div className="space-y-4 px-4 pt-4">
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-text-secondary">
+                名前
+              </label>
+              <input
+                type="text"
+                value={guardianName}
+                onChange={(e) => setGuardianName(e.target.value)}
+                placeholder="保護者の名前"
+                className="w-full rounded-xl border border-border bg-bg py-3 px-3 text-sm text-text placeholder:text-text-secondary/50 focus:border-primary focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-text-secondary">
+                メールアドレス
+              </label>
+              <input
+                type="email"
+                value={guardianEmail}
+                onChange={(e) => setGuardianEmail(e.target.value)}
+                placeholder="example@email.com"
+                className="w-full rounded-xl border border-border bg-bg py-3 px-3 text-sm text-text placeholder:text-text-secondary/50 focus:border-primary focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-text-secondary">
+                続柄
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {RELATION_OPTIONS.map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setGuardianRelation(r)}
+                    className={`rounded-full border-2 px-4 py-2 text-sm font-medium transition-colors ${
+                      guardianRelation === r
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border text-text-secondary hover:border-primary/30'
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={handleGuardianAdd}
+              disabled={!guardianName.trim() || !guardianEmail.trim() || !guardianRelation}
+              className="w-full rounded-2xl bg-primary py-3.5 text-base font-bold text-white shadow-md transition-all disabled:bg-border disabled:text-text-secondary disabled:shadow-none"
+            >
+              追加する
+            </button>
           </div>
         ) : subView === 'email' ? (
           <div className="space-y-4 px-4 pt-4">
