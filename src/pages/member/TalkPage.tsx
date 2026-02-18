@@ -9,11 +9,7 @@ import { ImagePreviewModal } from '../../components/ImagePreviewModal'
 import { FileAttachmentButton } from '../../components/FileAttachmentButton'
 import { MessageContextMenu } from '../../components/MessageContextMenu'
 import { SendHorizontal, CalendarOff, Bell, Ban, X } from 'lucide-react'
-import {
-  DUMMY_BROADCASTS,
-  DUMMY_MESSAGES,
-  DUMMY_READ_STATUSES,
-} from '../../lib/dummyData'
+import { useBroadcasts, useMessages } from '../../hooks/useData'
 import type { Message, Broadcast } from '../../types'
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
@@ -204,9 +200,10 @@ function ChatBubble({
 export function MemberTalkPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [messages, setMessages] = useState(DUMMY_MESSAGES)
+  const { messages, addMessage, unsendMessage: unsendMsg } = useMessages()
+  const { broadcasts: allBroadcasts, readStatuses } = useBroadcasts()
   const [readBroadcasts, setReadBroadcasts] = useState<Set<string>>(() => {
-    const userReads = DUMMY_READ_STATUSES.filter((r) => r.userId === user?.uid)
+    const userReads = readStatuses.filter((r) => r.userId === user?.uid)
     return new Set(userReads.map((r) => r.broadcastId))
   })
   const [showAbsenceForm, setShowAbsenceForm] = useState(false)
@@ -220,7 +217,7 @@ export function MemberTalkPage() {
   // ユーザーに関係する配信のみ (sent + recalled)
   const visibleBroadcasts = useMemo(
     () =>
-      DUMMY_BROADCASTS.filter(
+      allBroadcasts.filter(
         (bc) =>
           (bc.status === 'sent' || bc.status === 'recalled') &&
           (bc.targetType === 'all' ||
@@ -275,7 +272,7 @@ export function MemberTalkPage() {
       attachmentName: pendingAttachment?.file.name,
       createdAt: new Date(),
     }
-    setMessages((prev) => [...prev, newMsg])
+    addMessage(newMsg)
     setInputText('')
     setPendingAttachment(null)
     setShowRichMenu(false)
@@ -296,13 +293,13 @@ export function MemberTalkPage() {
       absenceNote: data.note || undefined,
       createdAt: new Date(),
     }
-    setMessages((prev) => [...prev, absenceMsg])
+    addMessage(absenceMsg)
     setShowAbsenceForm(false)
     setShowRichMenu(false)
   }
 
   const handleUnsend = (messageId: string) => {
-    setMessages(prev => prev.map(m => m.id === messageId ? { ...m, isDeleted: true, deletedAt: new Date() } : m))
+    unsendMsg(messageId)
     setContextMenu(null)
   }
 

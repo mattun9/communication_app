@@ -1,14 +1,13 @@
 import { Users, MessageSquare, Megaphone, CalendarOff } from 'lucide-react'
 import {
-  DUMMY_ABSENCES,
-  DUMMY_BROADCASTS,
-  DUMMY_READ_STATUSES,
-  DUMMY_MEMBERS,
-  DUMMY_MESSAGES,
-  getTargetLabel,
-  getTargetMemberCount,
-  getClassLabel,
-} from '../../lib/dummyData'
+  useMembers,
+  useAbsences,
+  useBroadcasts,
+  useMessages,
+  useClassLabel,
+  useTargetLabel,
+  useTargetMemberCount,
+} from '../../hooks/useData'
 
 function StatCard({ icon, label, value, sub, color }: {
   icon: React.ReactNode
@@ -32,16 +31,24 @@ function StatCard({ icon, label, value, sub, color }: {
 }
 
 export function AdminDashboard() {
-  const todayAbsences = DUMMY_ABSENCES.filter(
+  const { members } = useMembers()
+  const { absences } = useAbsences()
+  const { broadcasts, readStatuses } = useBroadcasts()
+  const { messages } = useMessages()
+  const getClassLabel = useClassLabel()
+  const getTargetLabel = useTargetLabel()
+  const getTargetMemberCount = useTargetMemberCount()
+
+  const todayAbsences = absences.filter(
     (a) => a.date.toDateString() === new Date().toDateString()
   )
-  const unreadMessages = DUMMY_MESSAGES.filter((m) => m.senderRole === 'member').length
-  const sentBroadcasts = DUMMY_BROADCASTS.filter((b) => b.status === 'sent')
+  const unreadMessages = messages.filter((m) => m.senderRole === 'member').length
+  const sentBroadcasts = broadcasts.filter((b) => b.status === 'sent')
 
   // 直近配信の開封率
   const latestBroadcast = sentBroadcasts[0]
   const latestReads = latestBroadcast
-    ? DUMMY_READ_STATUSES.filter((r) => r.broadcastId === latestBroadcast.id).length
+    ? readStatuses.filter((r) => r.broadcastId === latestBroadcast.id).length
     : 0
   const latestTotal = latestBroadcast ? getTargetMemberCount(latestBroadcast) : 0
   const latestRate = latestTotal > 0 ? Math.round((latestReads / latestTotal) * 100) : 0
@@ -56,7 +63,7 @@ export function AdminDashboard() {
           icon={<CalendarOff size={18} className="text-white" />}
           label="本日の欠席者"
           value={todayAbsences.length}
-          sub={`全${DUMMY_MEMBERS.length}名中`}
+          sub={`全${members.length}名中`}
           color="bg-danger"
         />
         <StatCard
@@ -76,7 +83,7 @@ export function AdminDashboard() {
         <StatCard
           icon={<Users size={18} className="text-white" />}
           label="登録会員数"
-          value={DUMMY_MEMBERS.length}
+          value={members.length}
           sub="アクティブ"
           color="bg-success"
         />
@@ -115,7 +122,7 @@ export function AdminDashboard() {
           <h2 className="mb-4 text-sm font-bold text-text">直近の配信</h2>
           <div className="space-y-3">
             {sentBroadcasts.slice(0, 4).map((bc) => {
-              const reads = DUMMY_READ_STATUSES.filter((r) => r.broadcastId === bc.id).length
+              const reads = readStatuses.filter((r) => r.broadcastId === bc.id).length
               const total = getTargetMemberCount(bc)
               const rate = total > 0 ? Math.round((reads / total) * 100) : 0
 

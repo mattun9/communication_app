@@ -1,0 +1,85 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- ヘルパー関数 ----
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // ---- ユーザー ----
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+      // 自分のプロフィール（アバターのみ）更新を許可
+      allow update: if isOwner(userId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avatarUrl']);
+    }
+
+    // ---- 教室 ----
+    match /classrooms/{classId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ---- 配信 ----
+    match /broadcasts/{broadcastId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin();
+    }
+
+    // ---- 開封状況 ----
+    match /readStatuses/{statusId} {
+      allow read: if isAuthenticated();
+      // 会員は自分の開封レコードのみ作成可能
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid;
+    }
+
+    // ---- メッセージ ----
+    match /messages/{messageId} {
+      // 管理者は全メッセージ閲覧可能、会員は自分が送受信者の場合のみ
+      allow read: if isAdmin() ||
+        (isAuthenticated() &&
+          (resource.data.senderUid == request.auth.uid ||
+           resource.data.recipientUid == request.auth.uid));
+      // 送信: 認証済みユーザーが自分のメッセージとして作成
+      allow create: if isAuthenticated() &&
+        request.resource.data.senderUid == request.auth.uid;
+      // 更新: 管理者 or 送信者本人（取消・既読マーク）
+      allow update: if isAdmin() || isOwner(resource.data.senderUid);
+      allow delete: if isAdmin();
+    }
+
+    // ---- お休み連絡 ----
+    match /absences/{absenceId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    // ---- カレンダーイベント ----
+    match /events/{eventId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ---- 定型文 ----
+    match /templates/{templateId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}

@@ -12,7 +12,7 @@ import {
   X,
   Paperclip,
 } from 'lucide-react'
-import type { Message, TemplateMessage } from '../../types'
+import type { Message } from '../../types'
 import { AbsenceCard } from '../../components/AbsenceCard'
 import { AttachmentPreview } from '../../components/AttachmentPreview'
 import { ImagePreviewModal } from '../../components/ImagePreviewModal'
@@ -21,14 +21,13 @@ import { MessageContextMenu } from '../../components/MessageContextMenu'
 import { TemplateMessagePanel } from '../../components/TemplateMessagePanel'
 import { TemplateManager } from '../../components/TemplateManager'
 import {
-  DEFAULT_TEMPLATES,
-  DUMMY_MEMBERS,
-  DUMMY_MESSAGES,
-  DUMMY_ABSENCES,
-  getClassLabel,
-  getMemberClassrooms,
-} from '../../lib/dummyData'
-import { useMessages } from '../../contexts/MessageContext'
+  useMembers,
+  useAbsences,
+  useMessages,
+  useTemplates,
+  useClassLabel,
+  useMemberClassrooms,
+} from '../../hooks/useData'
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
 
@@ -48,23 +47,29 @@ function isSameDay(a: Date, b: Date): boolean {
 }
 
 export function AdminInbox() {
+  const { members } = useMembers()
+  const { absences } = useAbsences()
+  const { messages, markMemberMessagesAsRead, addMessage, unsendMessage, updateMessage, deleteMessage } = useMessages()
+  const { templates, reorderTemplates } = useTemplates()
+  const getClassLabel = useClassLabel()
+  const getMemberClassrooms = useMemberClassrooms()
+
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedMember, setSelectedMember] = useState<
-    (typeof DUMMY_MEMBERS)[number] | null
+    (typeof members)[number] | null
   >(null)
-  const { messages, markMemberMessagesAsRead, addMessage, unsendMessage, updateMessage, deleteMessage } = useMessages()
 
   // Handle ?member=uid from MemberManagement navigation
   useEffect(() => {
     const memberUid = searchParams.get('member')
     if (memberUid) {
-      const member = DUMMY_MEMBERS.find((m) => m.uid === memberUid)
+      const member = members.find((m) => m.uid === memberUid)
       if (member) setSelectedMember(member)
       setSearchParams({}, { replace: true })
     } else if (!selectedMember) {
       // Default: select first member that has messages
-      const firstWithMsg = DUMMY_MEMBERS.find((m) =>
-        DUMMY_MESSAGES.some((msg) => msg.senderUid === m.uid || msg.recipientUid === m.uid)
+      const firstWithMsg = members.find((m) =>
+        messages.some((msg) => msg.senderUid === m.uid || msg.recipientUid === m.uid)
       )
       if (firstWithMsg) setSelectedMember(firstWithMsg)
     }
@@ -94,7 +99,6 @@ export function AdminInbox() {
   const [editingMessage, setEditingMessage] = useState<string | null>(null)
 
   // Features 4, 5: Template messages
-  const [templates, setTemplates] = useState<TemplateMessage[]>(DEFAULT_TEMPLATES)
   const [showTemplatePanel, setShowTemplatePanel] = useState(false)
   const [showTemplateManager, setShowTemplateManager] = useState(false)
 
@@ -117,10 +121,10 @@ export function AdminInbox() {
   }
 
   const getMemberAbsences = (uid: string) =>
-    DUMMY_ABSENCES.filter((a) => a.userId === uid)
+    absences.filter((a) => a.userId === uid)
 
   // --- Filtered + searched members ---
-  const filteredMembers = DUMMY_MEMBERS.filter((m) => {
+  const filteredMembers = members.filter((m) => {
     // Only show members that have messages (or are specifically searched/navigated to)
     const hasMessages = messages.some(
       (msg) => msg.senderUid === m.uid || msg.recipientUid === m.uid
@@ -757,7 +761,7 @@ export function AdminInbox() {
       {showTemplateManager && (
         <TemplateManager
           templates={templates}
-          onUpdate={setTemplates}
+          onUpdate={reorderTemplates}
           onClose={() => setShowTemplateManager(false)}
         />
       )}

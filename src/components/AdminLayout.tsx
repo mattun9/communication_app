@@ -10,7 +10,7 @@ import {
   ArrowRightLeft,
   LogOut,
 } from 'lucide-react'
-import { MessageProvider, useMessages } from '../contexts/MessageContext'
+import { useMessages } from '../hooks/useData'
 
 const navItems = [
   { path: '/admin/dashboard', label: 'ダッシュボード', icon: LayoutDashboard, badgeKey: null },
@@ -106,9 +106,5 @@ function AdminLayoutInner() {
 }
 
 export function AdminLayout() {
-  return (
-    <MessageProvider>
-      <AdminLayoutInner />
-    </MessageProvider>
-  )
+  return <AdminLayoutInner />
 }

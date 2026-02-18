@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Plus, X, Pencil, Trash2, Users } from 'lucide-react'
-import { DUMMY_CLASSROOMS, getClassroomMembers } from '../../lib/dummyData'
+import { useClassrooms, useClassroomMembers } from '../../hooks/useData'
 import type { Classroom } from '../../types'
 
 const DEFAULT_SPORT_CATEGORIES = [
@@ -14,7 +14,9 @@ const DEFAULT_SPORT_CATEGORIES = [
 ]
 
 export function AdminClassroomManagement() {
-  const [classrooms, setClassrooms] = useState<Classroom[]>(DUMMY_CLASSROOMS)
+  const { classrooms, addClassroom, updateClassroom, deleteClassroom } = useClassrooms()
+  const getClassroomMembers = useClassroomMembers()
+
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formName, setFormName] = useState('')
@@ -53,11 +55,7 @@ export function AdminClassroomManagement() {
       setCustomCategories((prev) => [...prev, formCategory.trim()])
     }
     if (editingId) {
-      setClassrooms((prev) =>
-        prev.map((c) =>
-          c.id === editingId ? { ...c, name: formName.trim(), sportCategory: formCategory } : c
-        )
-      )
+      updateClassroom(editingId, { name: formName.trim(), sportCategory: formCategory })
     } else {
       const newClassroom: Classroom = {
         id: `class-${Date.now()}`,
@@ -65,13 +63,13 @@ export function AdminClassroomManagement() {
         sportCategory: formCategory,
         createdAt: new Date(),
       }
-      setClassrooms((prev) => [...prev, newClassroom])
+      addClassroom(newClassroom)
     }
     setShowModal(false)
   }
 
   const handleDelete = (id: string) => {
-    setClassrooms((prev) => prev.filter((c) => c.id !== id))
+    deleteClassroom(id)
     setDeleteConfirmId(null)
   }
 

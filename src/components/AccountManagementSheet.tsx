@@ -14,7 +14,7 @@ import {
   User,
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
-import { getSiblings, getClassLabel } from '../lib/dummyData'
+import { useSiblings, useClassLabel } from '../hooks/useData'
 import type { Guardian } from '../types'
 
 interface AccountManagementSheetProps {
@@ -64,6 +64,9 @@ export function AccountManagementSheet({ onClose }: AccountManagementSheetProps)
   const [guardianName, setGuardianName] = useState('')
   const [guardianEmail, setGuardianEmail] = useState('')
   const [guardianRelation, setGuardianRelation] = useState('')
+
+  const getSiblings = useSiblings()
+  const getClassLabel = useClassLabel()
 
   if (!user) return null
 

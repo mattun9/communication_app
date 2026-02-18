@@ -1,7 +1,7 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { MessageCircle, Calendar, User, Bell } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
-import { DUMMY_BROADCASTS, DUMMY_READ_STATUSES, DUMMY_MESSAGES } from '../lib/dummyData'
+import { useBroadcasts, useMessages } from '../hooks/useData'
 
 const navItems = [
   { path: '/member/talk', label: 'トーク', icon: MessageCircle, badgeKey: 'talk' },
@@ -14,19 +14,19 @@ export function MemberLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { broadcasts, readStatuses } = useBroadcasts()
+  const { messages } = useMessages()
 
   const getBadgeCount = (key: string | null): number => {
     if (!user || !key) return 0
     if (key === 'talk') {
-      // トーク: 未読の管理者からのメッセージのみ
-      return DUMMY_MESSAGES.filter(
+      return messages.filter(
         (m) => m.recipientUid === user.uid && m.senderRole === 'admin' && !m.isReadByRecipient && !m.isDeleted
       ).length
     }
     if (key === 'news') {
-      // お知らせ: 未読の配信数
-      const userReads = new Set(DUMMY_READ_STATUSES.filter((r) => r.userId === user.uid).map((r) => r.broadcastId))
-      return DUMMY_BROADCASTS.filter(
+      const userReads = new Set(readStatuses.filter((r) => r.userId === user.uid).map((r) => r.broadcastId))
+      return broadcasts.filter(
         (bc) =>
           bc.status === 'sent' &&
           !userReads.has(bc.id) &&

@@ -14,7 +14,7 @@ import {
 } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
-import { DUMMY_EVENTS } from '../../lib/dummyData'
+import { useCalendarEvents } from '../../hooks/useData'
 import type { CalendarEvent } from '../../types'
 
 const EVENT_COLORS: Record<CalendarEvent['type'], string> = {
@@ -32,6 +32,7 @@ const EVENT_LABELS: Record<CalendarEvent['type'], string> = {
 }
 
 export function MemberCalendarPage() {
+  const { events } = useCalendarEvents()
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
 
@@ -50,7 +51,7 @@ export function MemberCalendarPage() {
   const weekDays = ['日', '月', '火', '水', '木', '金', '土']
 
   const getEventsForDate = (date: Date) =>
-    DUMMY_EVENTS.filter((e) => isSameDay(e.date, date))
+    events.filter((e) => isSameDay(e.date, date))
 
   const selectedEvents = selectedDate ? getEventsForDate(selectedDate) : []
 
