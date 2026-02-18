@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { Hash, AlertTriangle } from 'lucide-react'
 import {
@@ -20,6 +21,9 @@ function formatDateTime(date: Date): string {
 
 export function MemberNewsPage() {
   const { user } = useAuth()
+  const location = useLocation()
+  const scrollRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const [highlightId, setHighlightId] = useState<string | null>(null)
   const [readBroadcasts, setReadBroadcasts] = useState<Set<string>>(() => {
     const userReads = DUMMY_READ_STATUSES.filter((r) => r.userId === user?.uid)
     return new Set(userReads.map((r) => r.broadcastId))
@@ -32,10 +36,32 @@ export function MemberNewsPage() {
         (bc) =>
           (bc.status === 'sent' || bc.status === 'recalled') &&
           (bc.targetType === 'all' ||
-            (bc.targetType === 'class' && user && bc.targetClassIds.some((id) => user.classIds.includes(id))))
+            (bc.targetType === 'class' && user && bc.targetClassIds.some((id) => user.classIds.includes(id))) ||
+            (bc.targetType === 'individual' && user && bc.targetUserIds?.includes(user.uid)))
       ).sort((a, b) => (b.sentAt ?? b.createdAt).getTime() - (a.sentAt ?? a.createdAt).getTime()),
     [user]
   )
+
+  // Hash-based scroll to specific broadcast
+  useEffect(() => {
+    const hash = location.hash
+    if (!hash.startsWith('#bc-')) return
+    const targetId = hash.slice(4)
+    // Expand and mark as read
+    setExpandedIds((prev) => new Set(prev).add(targetId))
+    setReadBroadcasts((prev) => new Set(prev).add(targetId))
+    setHighlightId(targetId)
+    // Scroll after render
+    requestAnimationFrame(() => {
+      const el = scrollRefs.current[targetId]
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    })
+    // Remove highlight after animation
+    const timer = setTimeout(() => setHighlightId(null), 2000)
+    return () => clearTimeout(timer)
+  }, [location.hash])
 
   const handleExpand = (bcId: string) => {
     setExpandedIds((prev) => {
@@ -81,6 +107,8 @@ export function MemberNewsPage() {
                   const name = DUMMY_CLASSROOMS.find((c) => c.id === id)?.name ?? id
                   segmentLabels.push(name)
                 })
+              } else if (bc.targetType === 'individual') {
+                segmentLabels.push('個別')
               }
 
               // 取消済み
@@ -104,7 +132,8 @@ export function MemberNewsPage() {
               return (
                 <div
                   key={bc.id}
-                  className={`border-b border-border bg-bg-card ${!isRead ? 'border-l-[3px] border-l-primary' : ''}`}
+                  ref={(el) => { scrollRefs.current[bc.id] = el }}
+                  className={`border-b border-border bg-bg-card transition-colors duration-1000 ${!isRead ? 'border-l-[3px] border-l-primary' : ''} ${highlightId === bc.id ? 'bg-primary/10' : ''}`}
                 >
                   <div className="px-4 py-4">
                     {/* Header: avatar + name + datetime */}
@@ -162,7 +191,7 @@ export function MemberNewsPage() {
                     {/* Image */}
                     {bc.imageUrl && (
                       <div className="mt-3 overflow-hidden rounded-xl">
-                        <img src={bc.imageUrl} alt="" className="w-full object-cover" />
+                        <img src={bc.imageUrl} alt="" className="max-h-48 w-full object-cover" />
                       </div>
                     )}
                   </div>

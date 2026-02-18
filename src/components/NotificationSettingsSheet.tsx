@@ -11,13 +11,13 @@ function ToggleRow({ label, enabled, onToggle }: { label: string; enabled: boole
       <span className="text-sm font-medium text-text">{label}</span>
       <button
         onClick={onToggle}
-        className={`relative h-7 w-12 rounded-full transition-colors ${
+        className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
           enabled ? 'bg-primary' : 'bg-border'
         }`}
       >
         <span
-          className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-transform ${
-            enabled ? 'translate-x-5' : 'translate-x-0.5'
+          className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+            enabled ? 'translate-x-6' : 'translate-x-1'
           }`}
         />
       </button>

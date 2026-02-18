@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback, Fragment } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { BroadcastCard } from '../../components/BroadcastCard'
-import { BroadcastDetailModal } from '../../components/BroadcastDetailModal'
 import { AbsenceForm } from '../../components/AbsenceForm'
 import { AbsenceCard } from '../../components/AbsenceCard'
 import { AttachmentPreview } from '../../components/AttachmentPreview'
@@ -203,12 +203,12 @@ function ChatBubble({
 
 export function MemberTalkPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [messages, setMessages] = useState(DUMMY_MESSAGES)
   const [readBroadcasts, setReadBroadcasts] = useState<Set<string>>(() => {
     const userReads = DUMMY_READ_STATUSES.filter((r) => r.userId === user?.uid)
     return new Set(userReads.map((r) => r.broadcastId))
   })
-  const [openBroadcast, setOpenBroadcast] = useState<Broadcast | null>(null)
   const [showAbsenceForm, setShowAbsenceForm] = useState(false)
   const [inputText, setInputText] = useState('')
   const [showRichMenu, setShowRichMenu] = useState(false)
@@ -224,7 +224,8 @@ export function MemberTalkPage() {
         (bc) =>
           (bc.status === 'sent' || bc.status === 'recalled') &&
           (bc.targetType === 'all' ||
-            (bc.targetType === 'class' && user && bc.targetClassIds.includes(user.classId)))
+            (bc.targetType === 'class' && user && bc.targetClassIds.some(id => user.classIds.includes(id))) ||
+            (bc.targetType === 'individual' && user && bc.targetUserIds?.includes(user.uid)))
       ),
     [user]
   )
@@ -256,7 +257,6 @@ export function MemberTalkPage() {
   }, [timeline])
 
   const handleOpenBroadcast = (bc: Broadcast) => {
-    setOpenBroadcast(bc)
     setReadBroadcasts((prev) => new Set(prev).add(bc.id))
   }
 
@@ -339,7 +339,10 @@ export function MemberTalkPage() {
       {/* Unread important toast */}
       {unreadImportant.length > 0 && (
         <button
-          onClick={() => handleOpenBroadcast(unreadImportant[0])}
+          onClick={() => {
+            handleOpenBroadcast(unreadImportant[0])
+            navigate(`/member/news#bc-${unreadImportant[0].id}`)
+          }}
           className="mx-4 mt-2 flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/5 px-3 py-2 text-left transition-colors hover:bg-accent/10"
         >
           <Bell size={16} className="shrink-0 text-accent" />
@@ -479,12 +482,6 @@ export function MemberTalkPage() {
       </div>
 
       {/* Modals */}
-      {openBroadcast && (
-        <BroadcastDetailModal
-          broadcast={openBroadcast}
-          onClose={() => setOpenBroadcast(null)}
-        />
-      )}
       {showAbsenceForm && (
         <AbsenceForm
           onClose={() => setShowAbsenceForm(false)}

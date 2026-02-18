@@ -54,7 +54,7 @@ export function BroadcastDetailModal({ broadcast, onClose }: BroadcastDetailModa
         <div className="overflow-y-auto p-4" style={{ maxHeight: 'calc(85dvh - 56px)' }}>
           {broadcast.imageUrl && (
             <div className="mb-4 overflow-hidden rounded-xl">
-              <img src={broadcast.imageUrl} alt="" className="w-full object-cover" />
+              <img src={broadcast.imageUrl} alt="" className="max-h-56 w-full object-cover" />
             </div>
           )}
 
