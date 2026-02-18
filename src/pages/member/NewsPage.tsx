@@ -2,11 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { Hash, AlertTriangle } from 'lucide-react'
-import {
-  DUMMY_BROADCASTS,
-  DUMMY_READ_STATUSES,
-  DUMMY_CLASSROOMS,
-} from '../../lib/dummyData'
+import { useBroadcasts, useClassrooms } from '../../hooks/useData'
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
 
@@ -22,17 +18,19 @@ function formatDateTime(date: Date): string {
 export function MemberNewsPage() {
   const { user } = useAuth()
   const location = useLocation()
+  const { broadcasts: allBroadcasts, readStatuses } = useBroadcasts()
+  const { classrooms } = useClassrooms()
   const scrollRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const [readBroadcasts, setReadBroadcasts] = useState<Set<string>>(() => {
-    const userReads = DUMMY_READ_STATUSES.filter((r) => r.userId === user?.uid)
+    const userReads = readStatuses.filter((r) => r.userId === user?.uid)
     return new Set(userReads.map((r) => r.broadcastId))
   })
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
   const broadcasts = useMemo(
     () =>
-      DUMMY_BROADCASTS.filter(
+      allBroadcasts.filter(
         (bc) =>
           (bc.status === 'sent' || bc.status === 'recalled') &&
           (bc.targetType === 'all' ||
@@ -104,7 +102,7 @@ export function MemberNewsPage() {
                 const myClasses = bc.targetClassIds.filter((id) => myIds.includes(id))
                 const otherClasses = bc.targetClassIds.filter((id) => !myIds.includes(id))
                 ;[...myClasses, ...otherClasses].forEach((id) => {
-                  const name = DUMMY_CLASSROOMS.find((c) => c.id === id)?.name ?? id
+                  const name = classrooms.find((c) => c.id === id)?.name ?? id
                   segmentLabels.push(name)
                 })
               } else if (bc.targetType === 'individual') {

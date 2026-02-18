@@ -1,7 +1,7 @@
 import { X, AlertTriangle, Hash } from 'lucide-react'
 import type { Broadcast } from '../types'
-import { getTargetLabelForMember } from '../lib/dummyData'
 import { useAuth } from '../hooks/useAuth'
+import { useTargetLabelForMember } from '../hooks/useData'
 
 interface BroadcastDetailModalProps {
   broadcast: Broadcast
@@ -10,6 +10,7 @@ interface BroadcastDetailModalProps {
 
 export function BroadcastDetailModal({ broadcast, onClose }: BroadcastDetailModalProps) {
   const { user } = useAuth()
+  const getTargetLabelForMember = useTargetLabelForMember()
   const sentAt = broadcast.sentAt ?? broadcast.createdAt
   const segmentLabels = getTargetLabelForMember(broadcast, user?.classIds ?? [])
 

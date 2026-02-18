@@ -14,7 +14,7 @@ import {
 } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, CalendarOff, Users } from 'lucide-react'
-import { DUMMY_EVENTS, DUMMY_ABSENCES, DUMMY_MEMBERS, getClassLabel } from '../../lib/dummyData'
+import { useCalendarEvents, useAbsences, useMembers, useClassLabel } from '../../hooks/useData'
 import type { CalendarEvent } from '../../types'
 
 const EVENT_COLORS: Record<CalendarEvent['type'], string> = {
@@ -32,6 +32,11 @@ const EVENT_LABELS: Record<CalendarEvent['type'], string> = {
 }
 
 export function AdminSchedule() {
+  const { events } = useCalendarEvents()
+  const { absences } = useAbsences()
+  const { members } = useMembers()
+  const getClassLabel = useClassLabel()
+
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
 
@@ -50,17 +55,17 @@ export function AdminSchedule() {
   const weekDays = ['日', '月', '火', '水', '木', '金', '土']
 
   const getEventsForDate = (date: Date) =>
-    DUMMY_EVENTS.filter((e) => isSameDay(e.date, date))
+    events.filter((e) => isSameDay(e.date, date))
 
   const getAbsencesForDate = (date: Date) =>
-    DUMMY_ABSENCES.filter((a) => isSameDay(a.date, date))
+    absences.filter((a) => isSameDay(a.date, date))
 
   const selectedEvents = getEventsForDate(selectedDate)
   const selectedAbsences = getAbsencesForDate(selectedDate)
 
   const presentMembers = useMemo(() => {
     const absentIds = new Set(selectedAbsences.map((a) => a.userId))
-    return DUMMY_MEMBERS.filter((m) => !absentIds.has(m.uid))
+    return members.filter((m) => !absentIds.has(m.uid))
   }, [selectedAbsences])
 
   return (

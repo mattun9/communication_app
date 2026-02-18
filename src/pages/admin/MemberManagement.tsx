@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, ChevronUp, ChevronDown, Download, Upload, FileDown, X, Plus, Pencil, MessageCircle, Trash2 } from 'lucide-react'
-import { DUMMY_MEMBERS, DUMMY_CLASSROOMS, getClassLabel, CLASS_OPTIONS } from '../../lib/dummyData'
+import { useMembers, useClassrooms, useClassLabel, useClassOptions } from '../../hooks/useData'
 import { exportMembersToCSV, generateCSVTemplate, downloadCSV } from '../../lib/csvUtils'
 import { CSVImportModal } from '../../components/CSVImportModal'
 import type { User } from '../../types'
@@ -25,7 +25,7 @@ function formatDate(date: Date): string {
   return `${y}/${m}/${d}`
 }
 
-function getSortValue(member: User, field: SortField): string | number {
+function getSortValue(member: User, field: SortField, getClassLabel: (classId: string) => string): string | number {
   switch (field) {
     case 'memberNumber':
       return member.memberNumber ?? ''
@@ -47,8 +47,12 @@ function getSortValue(member: User, field: SortField): string | number {
 }
 
 export function AdminMemberManagement() {
+  const { members, addMember, updateMember, deleteMember } = useMembers()
+  const { classrooms } = useClassrooms()
+  const getClassLabel = useClassLabel()
+  const classOptions = useClassOptions()
+
   const navigate = useNavigate()
-  const [members, setMembers] = useState<User[]>(DUMMY_MEMBERS.filter(m => m.role === 'member'))
   const [searchQuery, setSearchQuery] = useState('')
   const [sortField, setSortField] = useState<SortField>('memberNumber')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
@@ -86,8 +90,8 @@ export function AdminMemberManagement() {
 
     // Sort
     result = [...result].sort((a, b) => {
-      const aVal = getSortValue(a, sortField)
-      const bVal = getSortValue(b, sortField)
+      const aVal = getSortValue(a, sortField, getClassLabel)
+      const bVal = getSortValue(b, sortField, getClassLabel)
       let cmp = 0
       if (typeof aVal === 'number' && typeof bVal === 'number') {
         cmp = aVal - bVal
@@ -110,7 +114,7 @@ export function AdminMemberManagement() {
   }
 
   const handleExport = () => {
-    const csv = exportMembersToCSV(filteredMembers, DUMMY_CLASSROOMS)
+    const csv = exportMembersToCSV(filteredMembers, classrooms)
     downloadCSV(csv, `会員一覧_${formatDate(new Date()).replace(/\//g, '')}.csv`)
   }
 
@@ -120,19 +124,21 @@ export function AdminMemberManagement() {
   }
 
   const handleImport = (imported: Partial<User>[]) => {
-    const newMembers: User[] = imported.map((m, i) => ({
-      uid: `imported-${Date.now()}-${i}`,
-      name: m.name ?? '',
-      nameKana: m.nameKana ?? '',
-      role: 'member' as const,
-      classId: '',
-      classIds: [],
-      phone: m.phone,
-      memberNumber: m.memberNumber,
-      email: m.email ?? '',
-      createdAt: new Date(),
-    }))
-    setMembers((prev) => [...prev, ...newMembers])
+    imported.forEach((m, i) => {
+      const newMember: User = {
+        uid: `imported-${Date.now()}-${i}`,
+        name: m.name ?? '',
+        nameKana: m.nameKana ?? '',
+        role: 'member' as const,
+        classId: '',
+        classIds: [],
+        phone: m.phone,
+        memberNumber: m.memberNumber,
+        email: m.email ?? '',
+        createdAt: new Date(),
+      }
+      addMember(newMember)
+    })
   }
 
   const openMemberDetail = (member: User) => {
@@ -146,7 +152,7 @@ export function AdminMemberManagement() {
 
   const updateSelectedMember = (updated: User) => {
     setSelectedMember(updated)
-    setMembers((prev) => prev.map((m) => (m.uid === updated.uid ? updated : m)))
+    updateMember(updated.uid, updated)
   }
 
   const handleRemoveClass = (classId: string) => {
@@ -184,13 +190,13 @@ export function AdminMemberManagement() {
   }
 
   const handleDeleteMember = (member: User) => {
-    setMembers((prev) => prev.filter((m) => m.uid !== member.uid))
+    deleteMember(member.uid)
     setDeleteConfirmMember(null)
     setSelectedMember(null)
   }
 
   const availableClassrooms = selectedMember
-    ? DUMMY_CLASSROOMS.filter((c) => !selectedMember.classIds.includes(c.id))
+    ? classrooms.filter((c) => !selectedMember.classIds.includes(c.id))
     : []
 
   return (
@@ -225,7 +231,7 @@ export function AdminMemberManagement() {
               className="rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             >
               <option value="all">すべての教室</option>
-              {CLASS_OPTIONS.map((opt) => (
+              {classOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>

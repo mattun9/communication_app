@@ -11,7 +11,7 @@ import {
   ShoppingBag,
   ArrowRightLeft,
 } from 'lucide-react'
-import { getMemberClassrooms } from '../../lib/dummyData'
+import { useMemberClassrooms } from '../../hooks/useData'
 import { ProfileEditSheet } from '../../components/ProfileEditSheet'
 import { NotificationSettingsSheet } from '../../components/NotificationSettingsSheet'
 import { AccountManagementSheet } from '../../components/AccountManagementSheet'
@@ -43,6 +43,8 @@ export function MemberMyPage() {
   const { user, isAdmin, switchRole, logout } = useAuth()
   const navigate = useNavigate()
   const [activeSheet, setActiveSheet] = useState<'profile' | 'notification' | 'account' | null>(null)
+
+  const getMemberClassrooms = useMemberClassrooms()
 
   if (!user) return null
 

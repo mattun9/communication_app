@@ -22,14 +22,13 @@ import {
   Users,
 } from 'lucide-react'
 import {
-  DUMMY_BROADCASTS,
-  DUMMY_READ_STATUSES,
-  DUMMY_CLASSROOMS,
-  DUMMY_MEMBERS,
-  CLASS_OPTIONS,
-  getTargetMemberCount,
-  getTargetMembers,
-} from '../../lib/dummyData'
+  useMembers,
+  useClassrooms,
+  useBroadcasts,
+  useClassOptions,
+  useTargetMemberCount,
+  useTargetMembers,
+} from '../../hooks/useData'
 import type { Broadcast } from '../../types'
 
 function formatDate(date: Date): string {
@@ -47,8 +46,10 @@ function formatShortDate(date: Date): string {
 // --- 未読者詳細モーダル ---
 function ReadDetailModal({ broadcast, onClose }: { broadcast: Broadcast; onClose: () => void }) {
   const navigate = useNavigate()
+  const { readStatuses } = useBroadcasts()
+  const getTargetMembers = useTargetMembers()
   const [tab, setTab] = useState<'read' | 'unread'>('unread')
-  const reads = DUMMY_READ_STATUSES.filter((r) => r.broadcastId === broadcast.id)
+  const reads = readStatuses.filter((r) => r.broadcastId === broadcast.id)
   const targetMembers = getTargetMembers(broadcast)
   const unreadMembers = targetMembers.filter(
     (m) => !reads.some((r) => r.userId === m.uid)
@@ -152,6 +153,9 @@ function ReadDetailModal({ broadcast, onClose }: { broadcast: Broadcast; onClose
 
 // --- セグメントラベル ---
 function SegmentLabels({ broadcast, variant = 'normal' }: { broadcast: Broadcast; variant?: 'normal' | 'compact' }) {
+  const { classrooms } = useClassrooms()
+  const { members } = useMembers()
+
   if (broadcast.targetType === 'all') {
     return (
       <span className={`inline-flex items-center gap-0.5 rounded-full bg-primary/10 font-bold text-primary ${variant === 'compact' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-[11px]'}`}>
@@ -162,7 +166,7 @@ function SegmentLabels({ broadcast, variant = 'normal' }: { broadcast: Broadcast
   if (broadcast.targetType === 'class') {
     const labels = broadcast.targetClassIds.map(id => ({
       id,
-      label: DUMMY_CLASSROOMS.find(c => c.id === id)?.name ?? id,
+      label: classrooms.find(c => c.id === id)?.name ?? id,
     }))
     const show = variant === 'compact' ? 1 : 2
     const visible = labels.slice(0, show)
@@ -183,10 +187,10 @@ function SegmentLabels({ broadcast, variant = 'normal' }: { broadcast: Broadcast
     )
   }
   if (broadcast.targetType === 'individual') {
-    const members = (broadcast.targetUserIds ?? []).map(uid => DUMMY_MEMBERS.find(m => m.uid === uid)?.name ?? uid)
+    const memberNames = (broadcast.targetUserIds ?? []).map(uid => members.find(m => m.uid === uid)?.name ?? uid)
     const show = variant === 'compact' ? 1 : 2
-    const visible = members.slice(0, show)
-    const rest = members.length - show
+    const visible = memberNames.slice(0, show)
+    const rest = memberNames.length - show
     return (
       <div className="flex flex-wrap items-center gap-1">
         {visible.map(name => (
@@ -212,6 +216,9 @@ function ComposePanel({ onClose, onSend, onSaveDraft, editingDraft }: {
   onSaveDraft: (bc: Omit<Broadcast, 'id' | 'createdAt' | 'createdBy'>) => void
   editingDraft?: Broadcast | null
 }) {
+  const { members } = useMembers()
+  const { classrooms } = useClassrooms()
+  const classOptions = useClassOptions()
   const [title, setTitle] = useState(editingDraft?.title ?? '')
   const [body, setBody] = useState(editingDraft?.body ?? '')
   const [targetType, setTargetType] = useState<'all' | 'class' | 'individual'>(
@@ -230,7 +237,7 @@ function ComposePanel({ onClose, onSend, onSaveDraft, editingDraft }: {
       : ''
   )
 
-  const allMembers = DUMMY_MEMBERS.filter(m => m.role === 'member')
+  const allMembers = members.filter(m => m.role === 'member')
   const filteredMembers = memberSearch.trim()
     ? allMembers.filter(m => m.name.includes(memberSearch) || m.nameKana.includes(memberSearch))
     : allMembers
@@ -304,7 +311,7 @@ function ComposePanel({ onClose, onSend, onSaveDraft, editingDraft }: {
             </div>
             {targetType === 'class' && (
               <div className="mt-2 flex flex-wrap gap-2">
-                {CLASS_OPTIONS.map((c) => (
+                {classOptions.map((c) => (
                   <button key={c.value} onClick={() => toggleClass(c.value)}
                     className={`rounded-full border-2 px-3 py-1.5 text-xs font-medium ${targetClassIds.includes(c.value) ? 'border-primary bg-primary/5 text-primary' : 'border-border text-text-secondary'}`}>
                     {c.label}
@@ -343,7 +350,7 @@ function ComposePanel({ onClose, onSend, onSaveDraft, editingDraft }: {
                         {m.name.charAt(0)}
                       </div>
                       <span className="flex-1 font-medium text-text">{m.name}</span>
-                      <span className="text-[10px] text-text-secondary">{DUMMY_CLASSROOMS.find(c => c.id === m.classId)?.name}</span>
+                      <span className="text-[10px] text-text-secondary">{classrooms.find(c => c.id === m.classId)?.name}</span>
                       {targetUserIds.includes(m.uid) && (
                         <span className="text-[10px] font-bold text-primary">選択中</span>
                       )}
@@ -415,7 +422,12 @@ function ComposePanel({ onClose, onSend, onSaveDraft, editingDraft }: {
 
 // --- メイン ---
 export function AdminBroadcastManager() {
-  const [broadcasts, setBroadcasts] = useState(DUMMY_BROADCASTS)
+  const { broadcasts, addBroadcast, updateBroadcast, readStatuses } = useBroadcasts()
+  const { members } = useMembers()
+  const { classrooms } = useClassrooms()
+  const classOptions = useClassOptions()
+  const getTargetMemberCount = useTargetMemberCount()
+
   const [selectedId, setSelectedId] = useState<string | null>(broadcasts[0]?.id ?? null)
   const [showCompose, setShowCompose] = useState(false)
   const [editingDraft, setEditingDraft] = useState<Broadcast | null>(null)
@@ -484,7 +496,7 @@ export function AdminBroadcastManager() {
     if (filterUnreadOnly) {
       result = result.filter((bc) => {
         if (bc.status !== 'sent') return false
-        const reads = DUMMY_READ_STATUSES.filter((r) => r.broadcastId === bc.id).length
+        const reads = readStatuses.filter((r) => r.broadcastId === bc.id).length
         const total = getTargetMemberCount(bc)
         return reads < total
       })
@@ -497,15 +509,11 @@ export function AdminBroadcastManager() {
 
   const handleCreate = (data: Omit<Broadcast, 'id' | 'createdAt' | 'createdBy'>) => {
     if (editingDraft) {
-      setBroadcasts((prev) =>
-        prev.map((bc) =>
-          bc.id === editingDraft.id ? { ...bc, ...data, sentAt: data.sentAt ?? bc.sentAt } : bc
-        )
-      )
+      updateBroadcast(editingDraft.id, { ...data, sentAt: data.sentAt ?? editingDraft.sentAt })
       setEditingDraft(null)
     } else {
       const newBc: Broadcast = { ...data, id: String(Date.now()), createdBy: 'admin-001', createdAt: new Date() }
-      setBroadcasts((prev) => [newBc, ...prev])
+      addBroadcast(newBc)
       setSelectedId(newBc.id)
     }
     setShowCompose(false)
@@ -514,10 +522,10 @@ export function AdminBroadcastManager() {
 
   const handleSaveDraft = (data: Omit<Broadcast, 'id' | 'createdAt' | 'createdBy'>) => {
     if (editingDraft) {
-      setBroadcasts((prev) => prev.map((bc) => (bc.id === editingDraft.id ? { ...bc, ...data } : bc)))
+      updateBroadcast(editingDraft.id, data)
     } else {
       const newBc: Broadcast = { ...data, id: String(Date.now()), createdBy: 'admin-001', createdAt: new Date() }
-      setBroadcasts((prev) => [newBc, ...prev])
+      addBroadcast(newBc)
       setSelectedId(newBc.id)
     }
     setEditingDraft(null)
@@ -526,14 +534,12 @@ export function AdminBroadcastManager() {
   }
 
   const handleRecall = (id: string) => {
-    setBroadcasts((prev) =>
-      prev.map((bc) => (bc.id === id ? { ...bc, status: 'recalled' as const, recalledAt: new Date() } : bc))
-    )
+    updateBroadcast(id, { status: 'recalled' as const, recalledAt: new Date() })
     setRecallConfirmId(null)
   }
 
   const handleDeleteDraft = (id: string) => {
-    setBroadcasts((prev) => prev.filter((bc) => bc.id !== id))
+    updateBroadcast(id, { status: 'deleted' as Broadcast['status'] })
     if (selectedId === id) setSelectedId(null)
   }
 
@@ -600,7 +606,7 @@ export function AdminBroadcastManager() {
                   <select value={filterClassId} onChange={(e) => setFilterClassId(e.target.value)}
                     className="mt-1 w-full rounded border border-border bg-bg-card px-2 py-1 text-[11px] text-text focus:border-primary focus:outline-none">
                     <option value="">教室を選択...</option>
-                    {CLASS_OPTIONS.map((c) => (
+                    {classOptions.map((c) => (
                       <option key={c.value} value={c.value}>{c.label}</option>
                     ))}
                   </select>
@@ -637,7 +643,7 @@ export function AdminBroadcastManager() {
             <p className="py-12 text-center text-sm text-text-secondary">配信がありません</p>
           ) : (
             filtered.map((bc) => {
-              const reads = DUMMY_READ_STATUSES.filter((r) => r.broadcastId === bc.id).length
+              const reads = readStatuses.filter((r) => r.broadcastId === bc.id).length
               const total = getTargetMemberCount(bc)
               const rate = total > 0 ? Math.round((reads / total) * 100) : 0
               const isActive = selectedId === bc.id
@@ -692,7 +698,7 @@ export function AdminBroadcastManager() {
         ) : (
           <div>
             {filtered.map((bc) => {
-              const reads = DUMMY_READ_STATUSES.filter((r) => r.broadcastId === bc.id).length
+              const reads = readStatuses.filter((r) => r.broadcastId === bc.id).length
               const total = getTargetMemberCount(bc)
               const rate = total > 0 ? Math.round((reads / total) * 100) : 0
               const isExpanded = selectedId === bc.id
@@ -703,11 +709,11 @@ export function AdminBroadcastManager() {
                 segmentLabels.push('全体')
               } else if (bc.targetType === 'class') {
                 bc.targetClassIds.forEach((id) => {
-                  const name = DUMMY_CLASSROOMS.find((c) => c.id === id)?.name ?? id
+                  const name = classrooms.find((c) => c.id === id)?.name ?? id
                   segmentLabels.push(name)
                 })
               } else if (bc.targetType === 'individual') {
-                const names = (bc.targetUserIds ?? []).map(uid => DUMMY_MEMBERS.find(m => m.uid === uid)?.name ?? uid)
+                const names = (bc.targetUserIds ?? []).map(uid => members.find(m => m.uid === uid)?.name ?? uid)
                 if (names.length <= 2) {
                   segmentLabels.push(...names)
                 } else {

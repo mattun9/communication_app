@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { X, Check, Camera } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
-import { getMemberClassrooms } from '../lib/dummyData'
+import { useMemberClassrooms } from '../hooks/useData'
 
 interface ProfileEditSheetProps {
   onClose: () => void
@@ -13,6 +13,8 @@ export function ProfileEditSheet({ onClose }: ProfileEditSheetProps) {
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatarUrl ?? null)
   const [submitted, setSubmitted] = useState(false)
+
+  const getMemberClassrooms = useMemberClassrooms()
 
   if (!user) return null
 

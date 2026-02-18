@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, ChevronRight, Hash, Megaphone } from 'lucide-react'
 import type { Broadcast } from '../types'
-import { getTargetLabelForMember } from '../lib/dummyData'
 import { useAuth } from '../hooks/useAuth'
+import { useTargetLabelForMember } from '../hooks/useData'
 
 function formatTime(date: Date): string {
   const now = new Date()
@@ -23,6 +23,7 @@ interface BroadcastCardProps {
 export function BroadcastCard({ broadcast, isRead, onOpen }: BroadcastCardProps) {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const getTargetLabelForMember = useTargetLabelForMember()
   const sentAt = broadcast.sentAt ?? broadcast.createdAt
   const segmentLabels = getTargetLabelForMember(broadcast, user?.classIds ?? [])
 
