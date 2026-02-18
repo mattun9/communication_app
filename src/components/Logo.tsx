@@ -1,6 +1,7 @@
 /**
  * STARTUS sports academy ロゴ
- * ロゴマークは /public/logo-mark.svg を使用
+ * ロゴマークは /logo-mark.png（1ファイル）を使用
+ * variant で色を切り替え（CSSフィルター）
  */
 interface LogoProps {
   size?: number
@@ -11,16 +12,20 @@ interface LogoProps {
 
 export function Logo({ size = 40, showText = true, className = '', variant = 'color' }: LogoProps) {
   const textColor = variant === 'white' ? '#ffffff' : '#000000'
-  const src = variant === 'white' ? '/logo-mark-white.svg' : '/logo-mark.svg'
+  // color: そのまま, white: 白に変換, black: 黒に変換
+  const imgFilter =
+    variant === 'white' ? 'brightness(0) invert(1)' :
+    variant === 'black' ? 'brightness(0)' :
+    undefined
 
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
       <img
-        src={src}
+        src="/logo-mark.png"
         alt="STARTUS"
         width={size}
         height={size}
-        className={variant === 'black' ? 'brightness-0' : ''}
+        style={imgFilter ? { filter: imgFilter } : undefined}
       />
       {showText && (
         <div className="flex flex-col" style={{ gap: size * 0.01 }}>
