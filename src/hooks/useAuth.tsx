@@ -62,7 +62,7 @@ function findUserByEmail(email: string): { user: User; guardianId?: string } | n
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [activeGuardianId, setActiveGuardianId] = useState<string | null>(null)
+  const [_activeGuardianId, setActiveGuardianId] = useState<string | null>(null)
 
   const login = useCallback((email: string, _password: string): boolean => {
     const result = findUserByEmail(email)
