@@ -35,8 +35,9 @@ export function LoginPage() {
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm">
         {/* Logo / App name */}
-        <div className="mb-8 flex flex-col items-center">
-          <Logo size={56} />
+        <div className="mb-8 flex flex-col items-center gap-3">
+          <Logo size={72} />
+          <span className="text-xs font-medium tracking-widest text-text-secondary">sports academy</span>
         </div>
 
         {/* Login form */}
