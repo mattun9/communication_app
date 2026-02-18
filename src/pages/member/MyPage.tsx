@@ -148,7 +148,7 @@ export function MemberMyPage() {
         </div>
 
         <div className="py-4 text-center">
-          <p className="text-xs text-text-secondary">STARTUS v1.0.0</p>
+          <p className="text-xs text-text-secondary">KANAZAWA STARTUS v1.0.0</p>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { Eye, EyeOff, LogIn } from 'lucide-react'
+import { Logo } from '../components/Logo'
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -34,12 +35,8 @@ export function LoginPage() {
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm">
         {/* Logo / App name */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-white shadow-lg">
-            S
-          </div>
-          <h1 className="text-xl font-bold text-text">STARTUS</h1>
-          <p className="mt-1 text-sm text-text-secondary">スポーツクラブ コミュニケーション</p>
+        <div className="mb-8 flex flex-col items-center">
+          <Logo size={56} />
         </div>
 
         {/* Login form */}
