@@ -11,6 +11,7 @@ import {
   LogOut,
 } from 'lucide-react'
 import { useMessages } from '../hooks/useData'
+import { Logo } from './Logo'
 
 const navItems = [
   { path: '/admin/dashboard', label: 'ダッシュボード', icon: LayoutDashboard, badgeKey: null },
@@ -36,9 +37,9 @@ function AdminLayoutInner() {
     <div className="flex h-screen bg-bg">
       {/* Sidebar */}
       <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-bg-card">
-        <div className="border-b border-border px-5 py-4">
-          <h1 className="text-base font-bold text-primary">STARTUS</h1>
-          <p className="text-xs text-text-secondary">管理者パネル</p>
+        <div className="border-b border-border px-4 py-3">
+          <Logo size={32} />
+          <p className="mt-1 pl-[42px] text-[10px] text-text-secondary">管理者パネル</p>
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-4">
