@@ -113,7 +113,7 @@ export function MemberMyPage() {
         <div className="border-b border-border">
           <MenuItem
             icon={<User size={20} className="text-text-secondary" />}
-            label="プロフィール編集"
+            label="プロフィール"
             onClick={() => setActiveSheet('profile')}
           />
           <MenuItem
