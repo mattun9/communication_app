@@ -35,8 +35,8 @@ export function LoginPage() {
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
-        <div className="mb-10 flex justify-center">
-          <Logo size={120} />
+        <div className="mb-12 flex justify-center">
+          <Logo size={200} className="drop-shadow-lg" />
         </div>
 
         {/* Login form */}
