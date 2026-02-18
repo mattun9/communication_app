@@ -37,12 +37,8 @@ function AdminLayoutInner() {
     <div className="flex h-screen bg-bg">
       {/* Sidebar */}
       <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-bg-card">
-        <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
-          <Logo size={32} />
-          <div>
-            <p className="text-sm font-bold text-text leading-none">STARTUS</p>
-            <p className="mt-0.5 text-[10px] text-text-secondary leading-none">管理者パネル</p>
-          </div>
+        <div className="flex items-center justify-center border-b border-border py-4">
+          <Logo size={48} />
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-4">
