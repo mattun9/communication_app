@@ -30,7 +30,7 @@ import {
   getTargetMemberCount,
   getTargetMembers,
 } from '../../lib/dummyData'
-import type { Broadcast, User } from '../../types'
+import type { Broadcast } from '../../types'
 
 function formatDate(date: Date): string {
   return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
