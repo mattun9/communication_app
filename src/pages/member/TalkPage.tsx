@@ -137,7 +137,7 @@ function ChatBubble({
             </span>
           </div>
           <div className="min-w-0 rounded-2xl rounded-tr-sm bg-bubble-mine px-4 py-2.5">
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-white">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-text">
               {message.text}
             </p>
             {message.attachmentUrl && message.attachmentType && (
@@ -146,7 +146,7 @@ function ChatBubble({
                 type={message.attachmentType}
                 fileName={message.attachmentName}
                 onImageClick={() => onImageClick(message.attachmentUrl!)}
-                variant="dark"
+                variant="light"
               />
             )}
           </div>
