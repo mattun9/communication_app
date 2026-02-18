@@ -43,9 +43,9 @@ export function NotificationSettingsSheet({ onClose }: NotificationSettingsSheet
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
-      <div className="w-full max-w-lg animate-slide-up rounded-t-3xl bg-bg-card pb-8">
+      <div className="flex w-full max-w-lg animate-slide-up flex-col rounded-t-3xl bg-bg-card" style={{ maxHeight: '85dvh' }}>
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
           <h2 className="text-base font-bold">通知設定</h2>
           <button
             onClick={onClose}
@@ -64,7 +64,7 @@ export function NotificationSettingsSheet({ onClose }: NotificationSettingsSheet
             <p className="text-sm text-text-secondary">通知設定を更新しました</p>
           </div>
         ) : (
-          <div className="space-y-6 overflow-y-auto px-4 pt-4" style={{ maxHeight: 'calc(85dvh - 56px)' }}>
+          <div className="flex-1 space-y-6 overflow-y-auto px-4 pb-10 pt-4">
             {/* Category toggles */}
             <div>
               <label className="mb-1.5 block text-xs font-bold text-text-secondary">
