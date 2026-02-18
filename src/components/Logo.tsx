@@ -1,6 +1,6 @@
 /**
  * KANAZAWA STARTUS SPORTS ACADEMY ロゴ
- * ブランドガイドライン準拠: 星型花マーク + テキスト
+ * ブランドガイドライン準拠
  */
 interface LogoProps {
   size?: number
@@ -13,6 +13,11 @@ export function Logo({ size = 40, showText = true, className = '', variant = 'co
   const markColor = variant === 'white' ? '#ffffff' : variant === 'black' ? '#000000' : '#ed6c00'
   const textColor = variant === 'white' ? '#ffffff' : '#000000'
 
+  // 6枚花弁の星型マーク — 各花弁は菱形（尖った楕円）
+  // 画像の形状を再現: 先端が鋭く、付け根はやや丸みを帯びる
+  const petals = [0, 60, 120, 180, 240, 300]
+  const petalPath = 'M0,-4 C6,-14 8,-30 0,-42 C-8,-30 -6,-14 0,-4Z'
+
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
       {/* Star-flower mark */}
@@ -23,40 +28,49 @@ export function Logo({ size = 40, showText = true, className = '', variant = 'co
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* 6-petal star-flower */}
         <g transform="translate(50,50)">
-          {[0, 60, 120, 180, 240, 300].map((angle) => (
-            <ellipse
+          {petals.map((angle) => (
+            <path
               key={angle}
-              cx="0"
-              cy="-22"
-              rx="14"
-              ry="22"
+              d={petalPath}
               fill={markColor}
               transform={`rotate(${angle})`}
             />
           ))}
-          <circle cx="0" cy="0" r="10" fill={markColor} />
+          <circle cx="0" cy="0" r="6" fill={markColor} />
         </g>
       </svg>
 
       {showText && (
-        <div className="flex flex-col leading-none">
+        <div className="flex flex-col" style={{ gap: size * 0.02 }}>
           <span
-            className="text-[0.7em] font-bold tracking-wider"
-            style={{ fontSize: size * 0.25, color: textColor }}
+            className="font-bold leading-none"
+            style={{
+              fontSize: size * 0.22,
+              letterSpacing: '0.12em',
+              color: textColor,
+            }}
           >
             KANAZAWA
           </span>
           <span
-            className="font-extrabold tracking-wide"
-            style={{ fontSize: size * 0.38, color: textColor }}
+            className="font-black leading-none"
+            style={{
+              fontSize: size * 0.42,
+              letterSpacing: '0.06em',
+              color: textColor,
+            }}
           >
             STARTUS
           </span>
           <span
-            className="text-[0.45em] font-semibold tracking-widest"
-            style={{ fontSize: size * 0.15, color: textColor, opacity: 0.7 }}
+            className="font-semibold leading-none"
+            style={{
+              fontSize: size * 0.14,
+              letterSpacing: '0.22em',
+              color: textColor,
+              opacity: 0.65,
+            }}
           >
             SPORTS ACADEMY
           </span>
