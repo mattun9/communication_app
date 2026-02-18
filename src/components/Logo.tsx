@@ -1,6 +1,6 @@
 /**
  * STARTUS sports academy ロゴ
- * ロゴマークは /logo-mark.svg（1ファイル）を使用
+ * ロゴマークは /logo-mark.png（1ファイル）を使用
  * variant で色を切り替え（CSSフィルター）
  */
 interface LogoProps {
@@ -21,7 +21,7 @@ export function Logo({ size = 40, showText = true, className = '', variant = 'co
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
       <img
-        src="/logo-mark.svg"
+        src="/logo-mark.png"
         alt="STARTUS"
         width={size}
         height={size}
