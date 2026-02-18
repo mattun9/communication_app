@@ -34,10 +34,9 @@ export function LoginPage() {
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm">
-        {/* Logo / App name */}
-        <div className="mb-8 flex flex-col items-center gap-3">
-          <Logo size={72} />
-          <span className="text-xs font-medium tracking-widest text-text-secondary">sports academy</span>
+        {/* Logo */}
+        <div className="mb-10 flex justify-center">
+          <Logo size={120} />
         </div>
 
         {/* Login form */}
