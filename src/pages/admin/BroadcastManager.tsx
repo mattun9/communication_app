@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Plus,
@@ -19,16 +19,18 @@ import {
   Phone,
   Filter,
   Hash,
+  Users,
 } from 'lucide-react'
 import {
   DUMMY_BROADCASTS,
   DUMMY_READ_STATUSES,
   DUMMY_CLASSROOMS,
+  DUMMY_MEMBERS,
   CLASS_OPTIONS,
   getTargetMemberCount,
   getTargetMembers,
 } from '../../lib/dummyData'
-import type { Broadcast } from '../../types'
+import type { Broadcast, User } from '../../types'
 
 function formatDate(date: Date): string {
   return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
@@ -180,6 +182,26 @@ function SegmentLabels({ broadcast, variant = 'normal' }: { broadcast: Broadcast
       </div>
     )
   }
+  if (broadcast.targetType === 'individual') {
+    const members = (broadcast.targetUserIds ?? []).map(uid => DUMMY_MEMBERS.find(m => m.uid === uid)?.name ?? uid)
+    const show = variant === 'compact' ? 1 : 2
+    const visible = members.slice(0, show)
+    const rest = members.length - show
+    return (
+      <div className="flex flex-wrap items-center gap-1">
+        {visible.map(name => (
+          <span key={name} className={`inline-flex items-center gap-0.5 rounded-full bg-primary/10 font-bold text-primary ${variant === 'compact' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-[11px]'}`}>
+            <Users size={variant === 'compact' ? 9 : 10} />{name}
+          </span>
+        ))}
+        {rest > 0 && (
+          <span className={`text-text-secondary ${variant === 'compact' ? 'text-[10px]' : 'text-[11px]'}`}>
+            他{rest}名
+          </span>
+        )}
+      </div>
+    )
+  }
   return <span className="text-[11px] text-text-secondary">個別指定</span>
 }
 
@@ -192,10 +214,12 @@ function ComposePanel({ onClose, onSend, onSaveDraft, editingDraft }: {
 }) {
   const [title, setTitle] = useState(editingDraft?.title ?? '')
   const [body, setBody] = useState(editingDraft?.body ?? '')
-  const [targetType, setTargetType] = useState<'all' | 'class'>(
-    editingDraft?.targetType === 'class' ? 'class' : 'all'
+  const [targetType, setTargetType] = useState<'all' | 'class' | 'individual'>(
+    editingDraft?.targetType ?? 'all'
   )
   const [targetClassIds, setTargetClassIds] = useState<string[]>(editingDraft?.targetClassIds ?? [])
+  const [targetUserIds, setTargetUserIds] = useState<string[]>(editingDraft?.targetUserIds ?? [])
+  const [memberSearch, setMemberSearch] = useState('')
   const [isImportant, setIsImportant] = useState(editingDraft?.isImportant ?? false)
   const [scheduleMode, setScheduleMode] = useState<'now' | 'scheduled'>(
     editingDraft?.scheduledAt ? 'scheduled' : 'now'
@@ -206,9 +230,20 @@ function ComposePanel({ onClose, onSend, onSaveDraft, editingDraft }: {
       : ''
   )
 
+  const allMembers = DUMMY_MEMBERS.filter(m => m.role === 'member')
+  const filteredMembers = memberSearch.trim()
+    ? allMembers.filter(m => m.name.includes(memberSearch) || m.nameKana.includes(memberSearch))
+    : allMembers
+
   const toggleClass = (id: string) => {
     setTargetClassIds((prev) =>
       prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    )
+  }
+
+  const toggleMember = (uid: string) => {
+    setTargetUserIds((prev) =>
+      prev.includes(uid) ? prev.filter((u) => u !== uid) : [...prev, uid]
     )
   }
 
@@ -216,7 +251,8 @@ function ComposePanel({ onClose, onSend, onSaveDraft, editingDraft }: {
     title: title.trim(),
     body: body.trim(),
     targetType,
-    targetClassIds: targetType === 'all' ? [] : targetClassIds,
+    targetClassIds: targetType === 'class' ? targetClassIds : [],
+    targetUserIds: targetType === 'individual' ? targetUserIds : undefined,
     isImportant,
     status,
     sentAt: status === 'sent' ? new Date() : undefined,
@@ -261,6 +297,10 @@ function ComposePanel({ onClose, onSend, onSaveDraft, editingDraft }: {
                 className={`rounded-lg border-2 px-4 py-2 text-sm font-medium ${targetType === 'class' ? 'border-primary bg-primary/5 text-primary' : 'border-border text-text-secondary'}`}>
                 クラス指定
               </button>
+              <button onClick={() => setTargetType('individual')}
+                className={`rounded-lg border-2 px-4 py-2 text-sm font-medium ${targetType === 'individual' ? 'border-primary bg-primary/5 text-primary' : 'border-border text-text-secondary'}`}>
+                個人指定
+              </button>
             </div>
             {targetType === 'class' && (
               <div className="mt-2 flex flex-wrap gap-2">
@@ -270,6 +310,46 @@ function ComposePanel({ onClose, onSend, onSaveDraft, editingDraft }: {
                     {c.label}
                   </button>
                 ))}
+              </div>
+            )}
+            {targetType === 'individual' && (
+              <div className="mt-2 space-y-2">
+                {targetUserIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {targetUserIds.map((uid) => {
+                      const m = allMembers.find(member => member.uid === uid)
+                      return (
+                        <span key={uid} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                          {m?.name ?? uid}
+                          <button onClick={() => toggleMember(uid)} className="ml-0.5 hover:text-danger">
+                            <X size={12} />
+                          </button>
+                        </span>
+                      )
+                    })}
+                  </div>
+                )}
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
+                  <input type="text" value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)}
+                    placeholder="会員名で検索..."
+                    className="w-full rounded-lg border border-border bg-bg py-2 pl-8 pr-3 text-xs text-text placeholder:text-text-secondary/50 focus:border-primary focus:outline-none" />
+                </div>
+                <div className="max-h-40 overflow-y-auto rounded-lg border border-border">
+                  {filteredMembers.map((m) => (
+                    <button key={m.uid} onClick={() => toggleMember(m.uid)}
+                      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors hover:bg-bg ${targetUserIds.includes(m.uid) ? 'bg-primary/5' : ''}`}>
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary">
+                        {m.name.charAt(0)}
+                      </div>
+                      <span className="flex-1 font-medium text-text">{m.name}</span>
+                      <span className="text-[10px] text-text-secondary">{DUMMY_CLASSROOMS.find(c => c.id === m.classId)?.name}</span>
+                      {targetUserIds.includes(m.uid) && (
+                        <span className="text-[10px] font-bold text-primary">選択中</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -341,6 +421,18 @@ export function AdminBroadcastManager() {
   const [editingDraft, setEditingDraft] = useState<Broadcast | null>(null)
   const [tabFilter, setTabFilter] = useState<'sent' | 'scheduled' | 'draft'>('sent')
   const [recallConfirmId, setRecallConfirmId] = useState<string | null>(null)
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({})
+
+  // Scroll to selected card in right panel
+  useEffect(() => {
+    if (!selectedId) return
+    requestAnimationFrame(() => {
+      const el = cardRefs.current[selectedId]
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }
+    })
+  }, [selectedId])
   const [showReadDetail, setShowReadDetail] = useState(false)
 
   // 検索・フィルタ
@@ -614,6 +706,13 @@ export function AdminBroadcastManager() {
                   const name = DUMMY_CLASSROOMS.find((c) => c.id === id)?.name ?? id
                   segmentLabels.push(name)
                 })
+              } else if (bc.targetType === 'individual') {
+                const names = (bc.targetUserIds ?? []).map(uid => DUMMY_MEMBERS.find(m => m.uid === uid)?.name ?? uid)
+                if (names.length <= 2) {
+                  segmentLabels.push(...names)
+                } else {
+                  segmentLabels.push(names[0], `他${names.length - 1}名`)
+                }
               }
 
               // 取消済み
@@ -621,6 +720,7 @@ export function AdminBroadcastManager() {
                 return (
                   <div
                     key={bc.id}
+                    ref={(el) => { cardRefs.current[bc.id] = el }}
                     className="border-b border-border bg-bg-card opacity-50"
                     onClick={() => setSelectedId(isExpanded ? null : bc.id)}
                     role="button"
@@ -651,7 +751,8 @@ export function AdminBroadcastManager() {
               return (
                 <div
                   key={bc.id}
-                  className="border-b border-border bg-bg-card"
+                  ref={(el) => { cardRefs.current[bc.id] = el }}
+                  className={`border-b border-border bg-bg-card transition-colors duration-500 ${isExpanded ? 'ring-2 ring-primary/20' : ''}`}
                   onClick={() => setSelectedId(isExpanded ? null : bc.id)}
                   role="button"
                   tabIndex={0}
@@ -723,7 +824,7 @@ export function AdminBroadcastManager() {
                     {/* Image */}
                     {bc.imageUrl && (
                       <div className="mt-3 overflow-hidden rounded-xl">
-                        <img src={bc.imageUrl} alt="" className="w-full object-cover" />
+                        <img src={bc.imageUrl} alt="" className="max-h-48 w-full object-cover" />
                       </div>
                     )}
 
