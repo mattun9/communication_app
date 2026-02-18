@@ -5,6 +5,8 @@ import { DUMMY_MEMBERS } from '../lib/dummyData'
 interface AuthContextType {
   user: User | null
   isAdmin: boolean
+  isAuthenticated: boolean
+  login: (email: string, password: string) => boolean
   switchRole: (role: 'admin' | 'member') => void
   updateUser: (updates: Partial<User>) => void
   switchChild: (uid: string) => void
@@ -14,6 +16,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isAdmin: false,
+  isAuthenticated: false,
+  login: () => false,
   switchRole: () => {},
   updateUser: () => {},
   switchChild: () => {},
@@ -31,21 +35,58 @@ const ADMIN_USER: User = {
   createdAt: new Date(),
 }
 
-function getDefaultMember(): User {
-  const member = DUMMY_MEMBERS.find(m => m.uid === 'member-001')
-  if (member) return { ...member }
-  return { uid: 'member-001', name: '山田 太郎', nameKana: 'ヤマダ タロウ', role: 'member', classId: 'class-a', classIds: ['class-a'], email: 'yamada@example.com', createdAt: new Date() }
+/** メールアドレスからユーザーを特定（保護者メールにも対応） */
+function findUserByEmail(email: string): { user: User; guardianId?: string } | null {
+  // 管理者チェック
+  if (email === ADMIN_USER.email) {
+    return { user: { ...ADMIN_USER } }
+  }
+
+  // 会員本人のメールチェック
+  const directMember = DUMMY_MEMBERS.find(m => m.email === email)
+  if (directMember) {
+    return { user: { ...directMember } }
+  }
+
+  // 保護者メールチェック（guardians 配列を持つ会員を検索）
+  for (const member of DUMMY_MEMBERS) {
+    if (!member.guardians) continue
+    const guardian = member.guardians.find(g => g.email === email)
+    if (guardian) {
+      return { user: { ...member }, guardianId: guardian.id }
+    }
+  }
+
+  return null
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User>(getDefaultMember)
+  const [user, setUser] = useState<User | null>(null)
+  const [activeGuardianId, setActiveGuardianId] = useState<string | null>(null)
+
+  const login = useCallback((email: string, _password: string): boolean => {
+    const result = findUserByEmail(email)
+    if (!result) return false
+    setUser(result.user)
+    setActiveGuardianId(result.guardianId ?? null)
+    return true
+  }, [])
 
   const switchRole = useCallback((newRole: 'admin' | 'member') => {
-    setUser(newRole === 'admin' ? { ...ADMIN_USER } : getDefaultMember())
+    if (newRole === 'admin') {
+      setUser({ ...ADMIN_USER })
+      setActiveGuardianId(null)
+    } else {
+      const member = DUMMY_MEMBERS.find(m => m.uid === 'member-001')
+      if (member) {
+        setUser({ ...member })
+        setActiveGuardianId(member.guardians?.[0]?.id ?? null)
+      }
+    }
   }, [])
 
   const updateUser = useCallback((updates: Partial<User>) => {
-    setUser(prev => ({ ...prev, ...updates }))
+    setUser(prev => prev ? { ...prev, ...updates } : prev)
   }, [])
 
   const switchChild = useCallback((uid: string) => {
@@ -54,14 +95,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const logout = useCallback(() => {
-    setUser(getDefaultMember())
+    setUser(null)
+    setActiveGuardianId(null)
   }, [])
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        isAdmin: user.role === 'admin',
+        isAdmin: user?.role === 'admin',
+        isAuthenticated: user !== null,
+        login,
         switchRole,
         updateUser,
         switchChild,
