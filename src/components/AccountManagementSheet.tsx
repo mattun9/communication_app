@@ -104,13 +104,13 @@ export function AccountManagementSheet({ onClose }: AccountManagementSheetProps)
   const handleDelete = () => {
     logout()
     onClose()
-    navigate('/member/talk')
+    navigate('/login')
   }
 
   const handleLogout = () => {
     logout()
     onClose()
-    navigate('/member/talk')
+    navigate('/login')
   }
 
   const handleChildSwitch = (uid: string) => {

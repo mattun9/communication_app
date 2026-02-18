@@ -24,7 +24,7 @@ const navItems = [
 function AdminLayoutInner() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, switchRole } = useAuth()
+  const { user, switchRole, logout } = useAuth()
   const { getUnreadCountFromMembers } = useMessages()
 
   const getBadgeCount = (key: string | null): number => {
@@ -84,7 +84,13 @@ function AdminLayoutInner() {
             <ArrowRightLeft size={16} />
             会員画面へ切替
           </button>
-          <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-danger hover:bg-danger/5">
+          <button
+            onClick={() => {
+              logout()
+              navigate('/login')
+            }}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-danger hover:bg-danger/5"
+          >
             <LogOut size={16} />
             ログアウト
           </button>
