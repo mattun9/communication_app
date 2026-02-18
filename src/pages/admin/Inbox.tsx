@@ -509,7 +509,7 @@ export function AdminInbox() {
                       <div
                         className={`min-w-0 rounded-2xl px-4 py-2.5 ${
                           isAdmin
-                            ? 'rounded-tr-sm bg-primary text-white'
+                            ? 'rounded-tr-sm bg-bubble-mine text-white'
                             : 'rounded-tl-sm bg-bubble-other text-text'
                         }`}
                         onContextMenu={(e) => handleContextMenu(e, msg.id)}
