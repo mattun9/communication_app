@@ -76,6 +76,7 @@ export function MessageProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useMessages(): MessageContextValue {
   const ctx = useContext(MessageContext)
   if (!ctx) throw new Error('useMessages must be used within MessageProvider')

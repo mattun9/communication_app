@@ -37,7 +37,7 @@ export function MemberNewsPage() {
             (bc.targetType === 'class' && user && bc.targetClassIds.some((id) => user.classIds.includes(id))) ||
             (bc.targetType === 'individual' && user && bc.targetUserIds?.includes(user.uid)))
       ).sort((a, b) => (b.sentAt ?? b.createdAt).getTime() - (a.sentAt ?? a.createdAt).getTime()),
-    [user]
+    [allBroadcasts, user]
   )
 
   // Hash-based scroll to specific broadcast
@@ -46,6 +46,7 @@ export function MemberNewsPage() {
     if (!hash.startsWith('#bc-')) return
     const targetId = hash.slice(4)
     // Expand and mark as read
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- responding to URL hash navigation
     setExpandedIds((prev) => new Set(prev).add(targetId))
     setReadBroadcasts((prev) => new Set(prev).add(targetId))
     setHighlightId(targetId)

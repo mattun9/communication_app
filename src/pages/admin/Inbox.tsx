@@ -64,6 +64,7 @@ export function AdminInbox() {
     const memberUid = searchParams.get('member')
     if (memberUid) {
       const member = members.find((m) => m.uid === memberUid)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- responding to URL search params navigation
       if (member) setSelectedMember(member)
       setSearchParams({}, { replace: true })
     } else if (!selectedMember) {

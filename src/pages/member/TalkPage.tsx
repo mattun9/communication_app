@@ -224,7 +224,7 @@ export function MemberTalkPage() {
             (bc.targetType === 'class' && user && bc.targetClassIds.some(id => user.classIds.includes(id))) ||
             (bc.targetType === 'individual' && user && bc.targetUserIds?.includes(user.uid)))
       ),
-    [user]
+    [allBroadcasts, user]
   )
 
   // 未読の重要お知らせ

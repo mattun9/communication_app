@@ -62,9 +62,10 @@ function findUserByEmail(email: string): { user: User; guardianId?: string } | n
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [_activeGuardianId, setActiveGuardianId] = useState<string | null>(null)
+  const [, setActiveGuardianId] = useState<string | null>(null)
 
-  const login = useCallback((email: string, _password: string): boolean => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const login = useCallback((email: string, _password?: string): boolean => {
     const result = findUserByEmail(email)
     if (!result) return false
     setUser(result.user)
@@ -117,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   return useContext(AuthContext)
 }

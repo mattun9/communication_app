@@ -66,7 +66,7 @@ export function AdminSchedule() {
   const presentMembers = useMemo(() => {
     const absentIds = new Set(selectedAbsences.map((a) => a.userId))
     return members.filter((m) => !absentIds.has(m.uid))
-  }, [selectedAbsences])
+  }, [selectedAbsences, members])
 
   return (
     <div className="flex h-screen">

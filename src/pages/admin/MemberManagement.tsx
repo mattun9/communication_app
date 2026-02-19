@@ -102,7 +102,7 @@ export function AdminMemberManagement() {
     })
 
     return result
-  }, [members, searchQuery, filterClassId, sortField, sortDirection])
+  }, [members, searchQuery, filterClassId, sortField, sortDirection, getClassLabel])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {

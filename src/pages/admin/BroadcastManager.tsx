@@ -503,7 +503,7 @@ export function AdminBroadcastManager() {
     }
 
     return result
-  }, [broadcasts, tabFilter, searchQuery, filterDateFrom, filterDateTo, filterSegment, filterClassId, filterUnreadOnly])
+  }, [broadcasts, tabFilter, searchQuery, filterDateFrom, filterDateTo, filterSegment, filterClassId, filterUnreadOnly, readStatuses, getTargetMemberCount])
 
   const selected = broadcasts.find((bc) => bc.id === selectedId) ?? null
 
