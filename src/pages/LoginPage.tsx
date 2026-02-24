@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { Eye, EyeOff, LogIn } from 'lucide-react'
 import { Logo } from '../components/Logo'
+import { firestoreEnabled } from '../lib/firestoreService'
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -11,7 +12,7 @@ export function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
@@ -21,14 +22,11 @@ export function LoginPage() {
     }
 
     setLoading(true)
-    // Simulate async login
-    setTimeout(() => {
-      const result = login(email.trim(), password)
-      if (!result) {
-        setError('メールアドレスまたはパスワードが正しくありません')
-      }
-      setLoading(false)
-    }, 400)
+    const result = await login(email.trim(), password)
+    if (!result.success) {
+      setError(result.error ?? 'ログインに失敗しました')
+    }
+    setLoading(false)
   }
 
   return (
@@ -98,25 +96,27 @@ export function LoginPage() {
           </button>
         </form>
 
-        {/* Demo accounts hint */}
-        <div className="mt-6 rounded-xl border border-border bg-bg-card p-4">
-          <p className="mb-2 text-xs font-bold text-text-secondary">デモアカウント</p>
-          <div className="space-y-1.5 text-[11px] text-text-secondary">
-            <div className="flex items-center justify-between">
-              <span>管理者</span>
-              <code className="rounded bg-bg px-1.5 py-0.5 font-mono text-text">tanaka@example.com</code>
+        {/* Demo accounts hint — デモモード時のみ表示 */}
+        {!firestoreEnabled && (
+          <div className="mt-6 rounded-xl border border-border bg-bg-card p-4">
+            <p className="mb-2 text-xs font-bold text-text-secondary">デモアカウント</p>
+            <div className="space-y-1.5 text-[11px] text-text-secondary">
+              <div className="flex items-center justify-between">
+                <span>管理者</span>
+                <code className="rounded bg-bg px-1.5 py-0.5 font-mono text-text">tanaka@example.com</code>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>保護者（父）</span>
+                <code className="rounded bg-bg px-1.5 py-0.5 font-mono text-text">yamada.ichiro@example.com</code>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>保護者（母）</span>
+                <code className="rounded bg-bg px-1.5 py-0.5 font-mono text-text">yamada.mika@example.com</code>
+              </div>
+              <p className="mt-1.5 text-[10px] text-text-secondary/70">パスワード: なんでもOK</p>
             </div>
-            <div className="flex items-center justify-between">
-              <span>保護者（父）</span>
-              <code className="rounded bg-bg px-1.5 py-0.5 font-mono text-text">yamada.ichiro@example.com</code>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>保護者（母）</span>
-              <code className="rounded bg-bg px-1.5 py-0.5 font-mono text-text">yamada.mika@example.com</code>
-            </div>
-            <p className="mt-1.5 text-[10px] text-text-secondary/70">パスワード: なんでもOK</p>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )

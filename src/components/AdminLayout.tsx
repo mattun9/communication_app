@@ -85,8 +85,8 @@ function AdminLayoutInner() {
             会員画面へ切替
           </button>
           <button
-            onClick={() => {
-              logout()
+            onClick={async () => {
+              await logout()
               navigate('/login')
             }}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-danger hover:bg-danger/5"

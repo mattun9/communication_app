@@ -104,14 +104,14 @@ export function AccountManagementSheet({ onClose }: AccountManagementSheetProps)
     showSuccess('パスワードを変更しました')
   }
 
-  const handleDelete = () => {
-    logout()
+  const handleDelete = async () => {
+    await logout()
     onClose()
     navigate('/login')
   }
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     onClose()
     navigate('/login')
   }

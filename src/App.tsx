@@ -21,14 +21,24 @@ import { AdminSchedule } from './pages/admin/Schedule'
 import { AdminMemberManagement } from './pages/admin/MemberManagement'
 import { AdminClassroomManagement } from './pages/admin/ClassroomManagement'
 
+function LoadingScreen() {
+  return (
+    <div className="flex min-h-[100dvh] items-center justify-center bg-bg">
+      <span className="h-8 w-8 animate-spin rounded-full border-3 border-primary border-t-transparent" />
+    </div>
+  )
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, loading } = useAuth()
+  if (loading) return <LoadingScreen />
   if (!isAuthenticated) return <Navigate to="/login" replace />
   return <>{children}</>
 }
 
 function LoginRoute() {
-  const { isAuthenticated, isAdmin } = useAuth()
+  const { isAuthenticated, isAdmin, loading } = useAuth()
+  if (loading) return <LoadingScreen />
   if (isAuthenticated) {
     return <Navigate to={isAdmin ? '/admin/dashboard' : '/member/talk'} replace />
   }

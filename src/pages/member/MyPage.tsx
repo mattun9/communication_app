@@ -140,9 +140,9 @@ export function MemberMyPage() {
             icon={<LogOut size={20} className="text-danger" />}
             label="ログアウト"
             danger
-            onClick={() => {
-              logout()
-              navigate('/member/talk')
+            onClick={async () => {
+              await logout()
+              navigate('/login')
             }}
           />
         </div>
