@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { DataProvider } from './contexts/DataContext'
 import { LoginPage } from './pages/LoginPage'
+import { RegisterPage } from './pages/RegisterPage'
 
 // Layouts
 import { MemberLayout } from './components/MemberLayout'
@@ -45,11 +46,21 @@ function LoginRoute() {
   return <LoginPage />
 }
 
+function RegisterRoute() {
+  const { isAuthenticated, isAdmin, loading } = useAuth()
+  if (loading) return <LoadingScreen />
+  if (isAuthenticated) {
+    return <Navigate to={isAdmin ? '/admin/dashboard' : '/member/talk'} replace />
+  }
+  return <RegisterPage />
+}
+
 function AppRoutes() {
   return (
     <Routes>
-      {/* ログイン画面 */}
+      {/* ログイン・登録画面 */}
       <Route path="/login" element={<LoginRoute />} />
+      <Route path="/register" element={<RegisterRoute />} />
 
       {/* 会員画面（モバイル） */}
       <Route

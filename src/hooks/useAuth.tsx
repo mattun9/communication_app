@@ -1,10 +1,11 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 import {
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   onAuthStateChanged,
   signOut,
 } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
 import { firestoreEnabled } from '../lib/firestoreService'
 import type { User } from '../types'
@@ -16,6 +17,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   loading: boolean
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  signup: (email: string, password: string, name: string, nameKana: string) => Promise<{ success: boolean; error?: string }>
   switchRole: (role: 'admin' | 'member') => void
   updateUser: (updates: Partial<User>) => void
   switchChild: (uid: string) => void
@@ -28,6 +30,7 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   loading: true,
   login: async () => ({ success: false }),
+  signup: async () => ({ success: false }),
   switchRole: () => {},
   updateUser: () => {},
   switchChild: () => {},
@@ -86,12 +89,16 @@ function getAuthErrorMessage(code: string): string {
     case 'auth/wrong-password':
     case 'auth/invalid-credential':
       return 'メールアドレスまたはパスワードが正しくありません'
+    case 'auth/email-already-in-use':
+      return 'このメールアドレスは既に登録されています'
+    case 'auth/weak-password':
+      return 'パスワードは6文字以上で入力してください'
     case 'auth/too-many-requests':
       return 'ログイン試行回数が多すぎます。しばらく待ってから再度お試しください'
     case 'auth/network-request-failed':
       return 'ネットワークエラーが発生しました。接続を確認してください'
     default:
-      return 'ログインに失敗しました'
+      return '処理に失敗しました'
   }
 }
 
@@ -146,6 +153,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { success: true }
   }, [])
 
+  // 新規登録
+  const signup = useCallback(async (email: string, password: string, name: string, nameKana: string): Promise<{ success: boolean; error?: string }> => {
+    if (!firestoreEnabled) {
+      return { success: false, error: '新規登録はデモモードでは利用できません' }
+    }
+    try {
+      const credential = await createUserWithEmailAndPassword(auth, email, password)
+      const uid = credential.user.uid
+      const userData: Omit<User, 'uid'> = {
+        name,
+        nameKana,
+        role: 'member',
+        classId: '',
+        classIds: [],
+        email,
+        createdAt: new Date(),
+      }
+      await setDoc(doc(db, 'users', uid), { ...userData, createdAt: serverTimestamp() })
+      setUser({ uid, ...userData })
+      return { success: true }
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code ?? ''
+      return { success: false, error: getAuthErrorMessage(code) }
+    }
+  }, [])
+
   // ロール切替（デモモード用）
   const switchRole = useCallback((newRole: 'admin' | 'member') => {
     if (firestoreEnabled) return
@@ -190,6 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: user !== null,
         loading,
         login,
+        signup,
         switchRole,
         updateUser,
         switchChild,

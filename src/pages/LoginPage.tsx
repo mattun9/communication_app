@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { Eye, EyeOff, LogIn } from 'lucide-react'
 import { Logo } from '../components/Logo'
@@ -95,6 +96,16 @@ export function LoginPage() {
             )}
           </button>
         </form>
+
+        {/* Register link — Firestore モード時のみ表示 */}
+        {firestoreEnabled && (
+          <p className="mt-6 text-center text-xs text-text-secondary">
+            アカウントをお持ちでない方は{' '}
+            <Link to="/register" className="font-bold text-primary hover:underline">
+              新規登録
+            </Link>
+          </p>
+        )}
 
         {/* Demo accounts hint — デモモード時のみ表示 */}
         {!firestoreEnabled && (
