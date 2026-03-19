@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { DataProvider } from './contexts/DataContext'
 import { LoginPage } from './pages/LoginPage'
+import { LineCallbackPage } from './pages/LineCallbackPage'
 
 // Layouts
 import { MemberLayout } from './components/MemberLayout'
@@ -40,6 +41,7 @@ function AppRoutes() {
     <Routes>
       {/* ログイン画面 */}
       <Route path="/login" element={<LoginRoute />} />
+      <Route path="/login/line-callback" element={<LineCallbackPage />} />
 
       {/* 会員画面（モバイル） */}
       <Route

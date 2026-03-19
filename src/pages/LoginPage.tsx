@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { Eye, EyeOff, LogIn } from 'lucide-react'
 import { Logo } from '../components/Logo'
+import { LineIcon } from '../components/LineIcon'
+import { isLineLoginEnabled, redirectToLineLogin } from '../lib/lineAuth'
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -97,6 +99,24 @@ export function LoginPage() {
             )}
           </button>
         </form>
+
+        {/* LINE Login */}
+        {isLineLoginEnabled && (
+          <div className="mt-4">
+            <div className="relative mb-4 flex items-center">
+              <div className="flex-1 border-t border-border" />
+              <span className="px-3 text-xs text-text-secondary">または</span>
+              <div className="flex-1 border-t border-border" />
+            </div>
+            <button
+              onClick={() => redirectToLineLogin('login')}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#06C755] py-3.5 text-base font-bold text-white shadow-md transition-all hover:bg-[#05b34c]"
+            >
+              <LineIcon size={20} className="text-white" />
+              LINEでログイン
+            </button>
+          </div>
+        )}
 
         {/* Demo accounts hint */}
         <div className="mt-6 rounded-xl border border-border bg-bg-card p-4">
