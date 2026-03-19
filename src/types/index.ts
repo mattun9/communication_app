@@ -19,6 +19,11 @@ export interface User {
   email: string
   avatarUrl?: string
   guardians?: Guardian[]
+  // LINE連携
+  lineUserId?: string
+  lineDisplayName?: string
+  lineNotificationEnabled?: boolean
+  lineLinkedAt?: Date
   createdAt: Date
 }
 

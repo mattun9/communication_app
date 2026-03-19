@@ -1,7 +1,10 @@
+import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { DataProvider } from './contexts/DataContext'
+import { LiffProvider, useLiff } from './contexts/LiffContext'
 import { LoginPage } from './pages/LoginPage'
+import { LineCallbackPage } from './pages/LineCallbackPage'
 
 // Layouts
 import { MemberLayout } from './components/MemberLayout'
@@ -21,17 +24,54 @@ import { AdminSchedule } from './pages/admin/Schedule'
 import { AdminMemberManagement } from './pages/admin/MemberManagement'
 import { AdminClassroomManagement } from './pages/admin/ClassroomManagement'
 
+function LiffLoadingScreen() {
+  return (
+    <div className="flex h-[100dvh] items-center justify-center bg-bg">
+      <div className="text-center">
+        <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="text-sm text-text-secondary">読み込み中...</p>
+      </div>
+    </div>
+  )
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, loginWithLiff } = useAuth()
+  const { isLiffReady, isInLiff } = useLiff()
+  const [liffLoginAttempted, setLiffLoginAttempted] = useState(false)
+
+  useEffect(() => {
+    if (isInLiff && isLiffReady && !isAuthenticated && !liffLoginAttempted) {
+      setLiffLoginAttempted(true)
+      loginWithLiff()
+    }
+  }, [isInLiff, isLiffReady, isAuthenticated, liffLoginAttempted, loginWithLiff])
+
+  // LIFF initializing
+  if (isInLiff && !isLiffReady) return <LiffLoadingScreen />
+
+  // LIFF auto-login in progress
+  if (isInLiff && !isAuthenticated && !liffLoginAttempted) return <LiffLoadingScreen />
+
+  // Not authenticated in browser mode
   if (!isAuthenticated) return <Navigate to="/login" replace />
+
   return <>{children}</>
 }
 
 function LoginRoute() {
   const { isAuthenticated, isAdmin } = useAuth()
+  const { isInLiff } = useLiff()
+
   if (isAuthenticated) {
     return <Navigate to={isAdmin ? '/admin/dashboard' : '/member/talk'} replace />
   }
+
+  // LIFF users skip login page — ProtectedRoute handles auto-auth
+  if (isInLiff) {
+    return <Navigate to="/member/talk" replace />
+  }
+
   return <LoginPage />
 }
 
@@ -40,6 +80,7 @@ function AppRoutes() {
     <Routes>
       {/* ログイン画面 */}
       <Route path="/login" element={<LoginRoute />} />
+      <Route path="/login/line-callback" element={<LineCallbackPage />} />
 
       {/* 会員画面（モバイル） */}
       <Route
@@ -83,12 +124,14 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <DataProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </DataProvider>
-    </AuthProvider>
+    <LiffProvider>
+      <AuthProvider>
+        <DataProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </DataProvider>
+      </AuthProvider>
+    </LiffProvider>
   )
 }

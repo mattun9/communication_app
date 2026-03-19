@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { X, Check } from 'lucide-react'
+import { LineIcon } from './LineIcon'
+import { useAuth } from '../hooks/useAuth'
+import { isLineLoginEnabled } from '../lib/lineAuth'
 
 interface NotificationSettingsSheetProps {
   onClose: () => void
@@ -26,10 +29,12 @@ function ToggleRow({ label, enabled, onToggle }: { label: string; enabled: boole
 }
 
 export function NotificationSettingsSheet({ onClose }: NotificationSettingsSheetProps) {
+  const { user, updateUser } = useAuth()
   const [chatEnabled, setChatEnabled] = useState(true)
   const [announcementEnabled, setAnnouncementEnabled] = useState(true)
   const [scheduleEnabled, setScheduleEnabled] = useState(true)
   const [soundEnabled, setSoundEnabled] = useState(true)
+  const [lineEnabled, setLineEnabled] = useState(user?.lineNotificationEnabled ?? true)
   const [quietStart, setQuietStart] = useState('22:00')
   const [quietEnd, setQuietEnd] = useState('07:00')
   const [submitted, setSubmitted] = useState(false)
@@ -74,6 +79,43 @@ export function NotificationSettingsSheet({ onClose }: NotificationSettingsSheet
               <ToggleRow label="お知らせ通知" enabled={announcementEnabled} onToggle={() => setAnnouncementEnabled(v => !v)} />
               <ToggleRow label="スケジュール通知" enabled={scheduleEnabled} onToggle={() => setScheduleEnabled(v => !v)} />
             </div>
+
+            {/* LINE通知 */}
+            {isLineLoginEnabled && (
+              <div>
+                <label className="mb-1.5 block text-xs font-bold text-text-secondary">
+                  LINE通知
+                </label>
+                {user?.lineUserId ? (
+                  <div className="flex items-center justify-between border-b border-border/50 py-3">
+                    <div className="flex items-center gap-2">
+                      <LineIcon size={16} className="text-[#06C755]" />
+                      <span className="text-sm font-medium text-text">LINE通知</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const next = !lineEnabled
+                        setLineEnabled(next)
+                        updateUser({ lineNotificationEnabled: next })
+                      }}
+                      className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
+                        lineEnabled ? 'bg-[#06C755]' : 'bg-border'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                          lineEnabled ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                ) : (
+                  <p className="py-3 text-xs text-text-secondary">
+                    マイページからLINE連携を行うと、LINE通知を受け取れます
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Sound */}
             <div>

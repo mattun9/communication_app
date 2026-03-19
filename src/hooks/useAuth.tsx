@@ -1,4 +1,8 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { signInWithCustomToken, signOut } from 'firebase/auth'
+import { auth } from '../lib/firebase'
+import { firestoreEnabled } from '../lib/firestoreService'
+import { getLiffAccessToken } from '../lib/liff'
 import type { User } from '../types'
 import { DUMMY_MEMBERS } from '../lib/dummyData'
 
@@ -7,6 +11,8 @@ interface AuthContextType {
   isAdmin: boolean
   isAuthenticated: boolean
   login: (email: string, password: string) => boolean
+  loginWithCustomToken: (token: string) => Promise<boolean>
+  loginWithLiff: () => Promise<{ success: boolean; status?: 'linked' | 'not_linked'; lineUserId?: string; lineDisplayName?: string }>
   switchRole: (role: 'admin' | 'member') => void
   updateUser: (updates: Partial<User>) => void
   switchChild: (uid: string) => void
@@ -18,6 +24,8 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   isAuthenticated: false,
   login: () => false,
+  loginWithCustomToken: async () => false,
+  loginWithLiff: async () => ({ success: false }),
   switchRole: () => {},
   updateUser: () => {},
   switchChild: () => {},
@@ -72,6 +80,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true
   }, [])
 
+  const loginWithCustomToken = useCallback(async (token: string): Promise<boolean> => {
+    if (!firestoreEnabled) return false
+    try {
+      await signInWithCustomToken(auth, token)
+      // User will be set via onAuthStateChanged in a production setup
+      // For now, return true to indicate success
+      return true
+    } catch (error) {
+      console.error('Custom token login failed:', error)
+      return false
+    }
+  }, [])
+
+  const loginWithLiff = useCallback(async (): Promise<{ success: boolean; status?: 'linked' | 'not_linked'; lineUserId?: string; lineDisplayName?: string }> => {
+    const accessToken = getLiffAccessToken()
+    if (!accessToken) return { success: false }
+
+    const functionsBaseUrl = import.meta.env.VITE_FIREBASE_FUNCTIONS_URL as string | undefined
+    if (!functionsBaseUrl) return { success: false }
+
+    try {
+      const res = await fetch(`${functionsBaseUrl}/liffAuth`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ liffAccessToken: accessToken }),
+      })
+
+      if (!res.ok) return { success: false }
+
+      const data = await res.json()
+
+      if (data.status === 'linked' && data.customToken) {
+        await signInWithCustomToken(auth, data.customToken)
+        return { success: true, status: 'linked', lineUserId: data.lineUserId, lineDisplayName: data.lineDisplayName }
+      }
+
+      return { success: false, status: 'not_linked', lineUserId: data.lineUserId, lineDisplayName: data.lineDisplayName }
+    } catch (error) {
+      console.error('LIFF login failed:', error)
+      return { success: false }
+    }
+  }, [])
+
   const switchRole = useCallback((newRole: 'admin' | 'member') => {
     if (newRole === 'admin') {
       setUser({ ...ADMIN_USER })
@@ -94,7 +145,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (sibling) setUser({ ...sibling })
   }, [])
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    if (firestoreEnabled) {
+      try {
+        await signOut(auth)
+      } catch {
+        // ignore sign out errors in demo mode
+      }
+    }
     setUser(null)
     setActiveGuardianId(null)
   }, [])
@@ -106,6 +164,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin: user?.role === 'admin',
         isAuthenticated: user !== null,
         login,
+        loginWithCustomToken,
+        loginWithLiff,
         switchRole,
         updateUser,
         switchChild,

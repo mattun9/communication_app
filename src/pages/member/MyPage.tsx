@@ -15,6 +15,10 @@ import { useMemberClassrooms } from '../../hooks/useData'
 import { ProfileEditSheet } from '../../components/ProfileEditSheet'
 import { NotificationSettingsSheet } from '../../components/NotificationSettingsSheet'
 import { AccountManagementSheet } from '../../components/AccountManagementSheet'
+import { LineAccountSheet } from '../../components/LineAccountSheet'
+import { LineIcon } from '../../components/LineIcon'
+import { isLineLoginEnabled } from '../../lib/lineAuth'
+import { useLiff } from '../../contexts/LiffContext'
 
 interface MenuItemProps {
   icon: React.ReactNode
@@ -41,8 +45,9 @@ function MenuItem({ icon, label, onClick, danger, right }: MenuItemProps) {
 
 export function MemberMyPage() {
   const { user, isAdmin, switchRole, logout } = useAuth()
+  const { isInLiff } = useLiff()
   const navigate = useNavigate()
-  const [activeSheet, setActiveSheet] = useState<'profile' | 'notification' | 'account' | null>(null)
+  const [activeSheet, setActiveSheet] = useState<'profile' | 'notification' | 'account' | 'line' | null>(null)
 
   const getMemberClassrooms = useMemberClassrooms()
 
@@ -123,6 +128,20 @@ export function MemberMyPage() {
             label="通知設定"
             onClick={() => setActiveSheet('notification')}
           />
+          {isLineLoginEnabled && !isInLiff && (
+            <MenuItem
+              icon={<LineIcon size={20} className="text-[#06C755]" />}
+              label="LINE連携"
+              onClick={() => setActiveSheet('line')}
+              right={
+                user.lineUserId ? (
+                  <span className="rounded-full bg-[#06C755]/10 px-2.5 py-0.5 text-[11px] font-bold text-[#06C755]">
+                    連携済み
+                  </span>
+                ) : undefined
+              }
+            />
+          )}
           <MenuItem
             icon={<Shield size={20} className="text-text-secondary" />}
             label="アカウント管理"
@@ -136,15 +155,17 @@ export function MemberMyPage() {
 
         <div className="border-b border-border">
           <MenuItem icon={<HelpCircle size={20} className="text-text-secondary" />} label="ヘルプ・お問い合わせ" />
-          <MenuItem
-            icon={<LogOut size={20} className="text-danger" />}
-            label="ログアウト"
-            danger
-            onClick={() => {
-              logout()
-              navigate('/member/talk')
-            }}
-          />
+          {!isInLiff && (
+            <MenuItem
+              icon={<LogOut size={20} className="text-danger" />}
+              label="ログアウト"
+              danger
+              onClick={() => {
+                logout()
+                navigate('/member/talk')
+              }}
+            />
+          )}
         </div>
 
         <div className="py-4 text-center">
@@ -161,6 +182,9 @@ export function MemberMyPage() {
       )}
       {activeSheet === 'account' && (
         <AccountManagementSheet onClose={() => setActiveSheet(null)} />
+      )}
+      {activeSheet === 'line' && (
+        <LineAccountSheet onClose={() => setActiveSheet(null)} />
       )}
     </div>
   )
