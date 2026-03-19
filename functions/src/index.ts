@@ -109,6 +109,69 @@ export const lineLoginCallback = onRequest(
 );
 
 // ============================================================
+// 1b. LIFF Auth — Exchange LIFF access token for Firebase Custom Token
+// ============================================================
+export const liffAuth = onRequest(
+  { cors: true },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    const { liffAccessToken } = req.body as { liffAccessToken?: string };
+
+    if (!liffAccessToken) {
+      res.status(400).json({ error: "liffAccessToken is required" });
+      return;
+    }
+
+    try {
+      // Verify LIFF access token by fetching LINE profile
+      const profileRes = await fetch("https://api.line.me/v2/profile", {
+        headers: { Authorization: `Bearer ${liffAccessToken}` },
+      });
+
+      if (!profileRes.ok) {
+        res.status(401).json({ error: "Invalid LIFF access token" });
+        return;
+      }
+
+      const profile = await profileRes.json();
+      const lineUserId = profile.userId as string;
+      const lineDisplayName = profile.displayName as string;
+
+      // Look up existing user linked to this LINE account
+      const usersSnap = await db
+        .collection("users")
+        .where("lineUserId", "==", lineUserId)
+        .limit(1)
+        .get();
+
+      if (!usersSnap.empty) {
+        const userDoc = usersSnap.docs[0];
+        const customToken = await admin.auth().createCustomToken(userDoc.id);
+        res.json({
+          status: "linked",
+          customToken,
+          lineUserId,
+          lineDisplayName,
+        });
+      } else {
+        res.json({
+          status: "not_linked",
+          lineUserId,
+          lineDisplayName,
+        });
+      }
+    } catch (error) {
+      console.error("liffAuth error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
+// ============================================================
 // 2. Link LINE Account to authenticated user
 // ============================================================
 export const linkLineAccount = onCall(
