@@ -8,7 +8,7 @@ import { AlertCircle } from 'lucide-react'
 export function LineCallbackPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { loginWithCustomToken, updateUser } = useAuth()
+  const { loginWithLiff, updateUser } = useAuth()
   const [status, setStatus] = useState<'processing' | 'error' | 'not_linked'>('processing')
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -41,7 +41,7 @@ export function LineCallbackPage() {
 
   async function handleCallback(code: string, mode: 'login' | 'link') {
     try {
-      const functionsBaseUrl = import.meta.env.VITE_FIREBASE_FUNCTIONS_URL as string
+      const functionsBaseUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL as string
       if (!functionsBaseUrl) {
         setStatus('error')
         setErrorMessage('サーバー設定が不足しています')
@@ -51,7 +51,6 @@ export function LineCallbackPage() {
       const result = await exchangeLineCode(code, functionsBaseUrl)
 
       if (mode === 'link') {
-        // Link mode: save LINE info to current user
         updateUser({
           lineUserId: result.lineUserId,
           lineDisplayName: result.lineDisplayName,
@@ -62,17 +61,15 @@ export function LineCallbackPage() {
         return
       }
 
-      // Login mode
-      if (result.status === 'linked' && result.customToken) {
-        const success = await loginWithCustomToken(result.customToken)
-        if (success) {
-          navigate('/member/talk', { replace: true })
-        } else {
-          setStatus('error')
-          setErrorMessage('ログインに失敗しました')
-        }
-      } else {
+      // Login mode: LIFFトークンを使ってSupabaseセッションを取得
+      const loginResult = await loginWithLiff()
+      if (loginResult.success) {
+        navigate('/member/talk', { replace: true })
+      } else if (loginResult.status === 'not_linked') {
         setStatus('not_linked')
+      } else {
+        setStatus('error')
+        setErrorMessage('ログインに失敗しました')
       }
     } catch (err) {
       setStatus('error')
